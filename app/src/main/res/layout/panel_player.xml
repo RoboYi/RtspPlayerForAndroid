@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:background="@drawable/card"
+    android:orientation="vertical"
+    android:padding="12dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <EditText
+            android:id="@+id/rtsp_url"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:background="@drawable/outline_button"
+            android:hint="@string/rtsp_hint"
+            android:inputType="textUri"
+            android:paddingHorizontal="14dp"
+            android:singleLine="true"
+            android:textColor="@color/ink"
+            android:textSize="14sp" />
+        <Button
+            android:id="@+id/connect_button"
+            android:layout_width="76dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/primary_button"
+            android:text="@string/connect"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+    <FrameLayout
+        android:id="@+id/video_container"
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:layout_marginTop="12dp"
+        android:background="#111C2A">
+        <FrameLayout
+            android:id="@+id/player_host"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+        <TextView
+            android:id="@+id/preview_placeholder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="24dp"
+            android:text="@string/enter_rtsp_connect"
+            android:textColor="#D3E1F2"
+            android:textSize="16sp" />
+        <TextView
+            android:id="@+id/preview_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|top"
+            android:layout_margin="12dp"
+            android:background="#AA101C2A"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="6dp"
+            android:text="@string/disconnected_badge"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+        <Button
+            android:id="@+id/fullscreen_button"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="12dp"
+            android:background="@drawable/video_overlay_button"
+            android:contentDescription="@string/enter_fullscreen_description"
+            android:paddingHorizontal="14dp"
+            android:text="@string/fullscreen"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF" />
+    </FrameLayout>
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fillViewport="true"
+        android:scrollbars="none">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/pause_button" style="@style/ControlButton" android:text="@string/pause_recording" android:visibility="gone" />
+            <Button android:id="@+id/stop_button" style="@style/ControlButton" android:text="@string/stop" />
+            <Button android:id="@+id/snapshot_button" style="@style/ControlButton" android:text="@string/screenshot" />
+            <Button android:id="@+id/record_button" style="@style/ControlButton" android:text="@string/record" />
+            <Button android:id="@+id/watermark_button" style="@style/ControlButton" android:text="@string/watermark_button" />
+            <Button android:id="@+id/bitmap_watermark_button" style="@style/ControlButton" android:text="@string/bitmap_draw" />
+            <Button android:id="@+id/fit_button" style="@style/ControlButton" android:text="@string/fit_video" />
+        </LinearLayout>
+    </HorizontalScrollView>
+    <TextView
+        android:id="@+id/stream_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:text="@string/waiting_stream"
+        android:textColor="@color/muted"
+        android:textSize="12sp" />
+</LinearLayout>

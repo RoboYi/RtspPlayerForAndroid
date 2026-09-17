@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.roboyi.rtspdemo'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.roboyi.rtspdemo'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
+        buildConfigField 'String', 'ROBOYI_LICENSE', '"RYL4.prod-2026-01.eyJzY2hlbWFWZXJzaW9uIjo0LCJsaWNlbnNlSWQiOiJkZW1vLXJ0c3BwbGF5ZXItcGVycGV0dWFsLTIwMjYwOTE5IiwiYXBwbGljYXRpb25MYWJlbCI6IlJ0c3BQbGF5ZXIiLCJwYWNrYWdlTmFtZXMiOlsiY29tLnJvYm95aS5ydHNwZGVtbyJdLCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAsImNvZGVjU2NvcGUiOiJBVkNfSEVWQyIsImZlYXR1cmVzIjpbIlBMQVlCQUNLIiwiUkVDT1JESU5HIiwiUlRTUF9QVVNIIiwiU0NSRUVOU0hPVCJdfQ.MEYCIQDtlvrIyQa52jFiuU2GbwrzMjur7okMI2NR-cdkzJeDSwIhAIcNScsxBUmhiQ6mPOMxIjuJTrcIN6X9rQzp3p9co2sZ"'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions { jvmTarget = '1.8' }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    packaging {
+        jniLibs { pickFirsts += ['**/libc++_shared.so'] }
+    }
+}
+
+dependencies {
+    implementation project(':domain')
+    implementation project(':data')
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.fragment:fragment-ktx:1.8.5'
+    implementation 'androidx.activity:activity-ktx:1.9.3'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.6.2'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.6.2'
+    implementation files('libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.1-Beta.aar')
+    implementation files('libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.1-Beta.aar')
+}

@@ -1,0 +1,8 @@
+<resources>
+    <color name="page">#F4F7FC</color>
+    <color name="ink">#172238</color>
+    <color name="muted">#66748C</color>
+    <color name="blue">#1764D9</color>
+    <color name="green">#1FA56A</color>
+    <color name="stroke">#D8E1EF</color>
+</resources>

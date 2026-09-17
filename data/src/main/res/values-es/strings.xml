@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_directory_error">No se pudo crear la carpeta de capturas</string>
+</resources>

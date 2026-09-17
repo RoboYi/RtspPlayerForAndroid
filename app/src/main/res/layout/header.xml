@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/header_title"
+            android:textColor="@color/ink"
+            android:textSize="23sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/license_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/checking_license"
+            android:textColor="@color/muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+    <ImageButton
+        android:id="@+id/settings_button"
+        style="@style/HeaderIconButton"
+        android:contentDescription="@string/settings"
+        android:src="@drawable/ic_settings_ios" />
+    <ImageButton
+        android:id="@+id/about_button"
+        style="@style/HeaderIconButton"
+        android:contentDescription="@string/about_app"
+        android:src="@drawable/ic_about_ios" />
+</LinearLayout>

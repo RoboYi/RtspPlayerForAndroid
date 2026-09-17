@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_directory_error">無法建立錄影與截圖目錄</string>
+</resources>

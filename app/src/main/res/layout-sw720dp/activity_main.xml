@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:padding="18dp">
+    <include layout="@layout/header" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <include layout="@layout/panel_player"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+        <include layout="@layout/panel_sidebar"
+            android:layout_width="360dp"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+</LinearLayout>
