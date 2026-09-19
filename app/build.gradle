@@ -3,6 +3,17 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def releaseSigningFile = rootProject.file('release-signing.properties')
+def releaseSigning = new Properties()
+if (releaseSigningFile.isFile()) {
+    releaseSigningFile.withInputStream { releaseSigning.load(it) }
+}
+def requiredSigningKeys = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+def hasReleaseSigning = requiredSigningKeys.every { releaseSigning.getProperty(it)?.trim() }
+if (releaseSigningFile.isFile() && !hasReleaseSigning) {
+    throw new GradleException('release-signing.properties must contain storeFile, storePassword, keyAlias and keyPassword')
+}
+
 android {
     namespace 'com.roboyi.rtspdemo'
     compileSdk 35
@@ -11,8 +22,8 @@ android {
         applicationId 'com.roboyi.rtspdemo'
         minSdk 24
         targetSdk 35
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.0.1-Beta'
         ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
         buildConfigField 'String', 'ROBOYI_LICENSE', '"RYL4.prod-2026-01.eyJzY2hlbWFWZXJzaW9uIjo0LCJsaWNlbnNlSWQiOiJkZW1vLXJ0c3BwbGF5ZXItcGVycGV0dWFsLTIwMjYwOTE5IiwiYXBwbGljYXRpb25MYWJlbCI6IlJ0c3BQbGF5ZXIiLCJwYWNrYWdlTmFtZXMiOlsiY29tLnJvYm95aS5ydHNwZGVtbyJdLCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAsImNvZGVjU2NvcGUiOiJBVkNfSEVWQyIsImZlYXR1cmVzIjpbIlBMQVlCQUNLIiwiUkVDT1JESU5HIiwiUlRTUF9QVVNIIiwiU0NSRUVOU0hPVCJdfQ.MEYCIQDtlvrIyQa52jFiuU2GbwrzMjur7okMI2NR-cdkzJeDSwIhAIcNScsxBUmhiQ6mPOMxIjuJTrcIN6X9rQzp3p9co2sZ"'
     }
@@ -28,8 +39,37 @@ android {
         buildConfig true
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile rootProject.file(releaseSigning.getProperty('storeFile'))
+                storePassword releaseSigning.getProperty('storePassword')
+                keyAlias releaseSigning.getProperty('keyAlias')
+                keyPassword releaseSigning.getProperty('keyPassword')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+        }
+    }
+
     packaging {
         jniLibs { pickFirsts += ['**/libc++_shared.so'] }
+    }
+}
+
+
+// ... existing code ...
+
+android.applicationVariants.all { variant ->
+    if (variant.buildType.name == 'release') {
+        variant.outputs.all { output ->
+            def versionName = variant.versionName
+            outputFileName = "RoboYiPlayer-${versionName}.apk"
+        }
     }
 }
 
