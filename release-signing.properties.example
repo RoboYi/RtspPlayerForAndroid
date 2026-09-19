@@ -1,0 +1,6 @@
+# Copy to release-signing.properties in the repository root. Keep the real file private.
+# Use the same private signing key for every update of this applicationId.
+storeFile=E:/roboyi-keys/rtspplayer-release.jks
+storePassword=REPLACE_WITH_PRIVATE_PASSWORD
+keyAlias=rtspplayer
+keyPassword=REPLACE_WITH_PRIVATE_PASSWORD

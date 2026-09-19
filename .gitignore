@@ -3,4 +3,9 @@
 .idea/
 **/build/
 local.properties
+release-signing.properties
+*.jks
+*.keystore
+*.p12
+*.apk
 *.iml
