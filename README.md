@@ -4,7 +4,7 @@
 
 **申请 SDK、试用授权或商业授权：请联系 [RoboYi@126.com](mailto:RoboYi@126.com)。**
 
-示例APK下载地址：https://github.com/YangJiayi909/RtspPlayerForAndroid/releases/download/V1.0.1_Beta/RoboYiPlayer-1.0.1-Beta.apk
+示例APK下载地址：https://github.com/RoboYi/RtspPlayerForAndroid/releases/tag/V1.0.1_Beta
 
 ## 先看能做什么
 
