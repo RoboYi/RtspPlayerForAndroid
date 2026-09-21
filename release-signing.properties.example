@@ -1,6 +1,11 @@
 # Copy to release-signing.properties in the repository root. Keep the real file private.
 # Use the same private signing key for every update of this applicationId.
-storeFile=E:/roboyi-keys/rtspplayer-release.jks
-storePassword=REPLACE_WITH_PRIVATE_PASSWORD
-keyAlias=rtspplayer
-keyPassword=REPLACE_WITH_PRIVATE_PASSWORD
+# The supplied extensionless container has a PKCS#12 header; verify its alias
+# and password interactively with keytool before using it for this application.
+storeFile=E:/roboyi-keys/roboyi_rtsp_apkstore
+storeType=pkcs12
+keyAlias=REPLACE_WITH_VERIFIED_ALIAS
+# Prefer session-only ROBOYI_RELEASE_STORE_PASSWORD and ROBOYI_RELEASE_KEY_PASSWORD
+# environment variables instead of storing passwords in this file. Optional fallback:
+# storePassword=
+# keyPassword=

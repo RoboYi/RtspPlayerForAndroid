@@ -1,15 +1,14 @@
 package com.roboyi.rtspdemo.data
 
-import android.content.SharedPreferences
 import com.roboyi.rtspdemo.domain.ConnectionEntry
 import com.roboyi.rtspdemo.domain.ConnectionHistoryRepository
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 沿用现有 JSON 结构，不迁移或清空用户已有的连接记录。 */
-class SharedPreferencesConnectionHistory(private val prefs: SharedPreferences) : ConnectionHistoryRepository {
+/** Retains the existing JSON format inside encrypted local storage. */
+class SharedPreferencesConnectionHistory(private val store: SecureConnectionStore) : ConnectionHistoryRepository {
     override fun entries(): List<ConnectionEntry> {
-        val array = runCatching { JSONArray(prefs.getString(KEY, "[]")) }
+        val array = runCatching { JSONArray(store.get(SecureConnectionStore.HISTORY) ?: "[]") }
             .getOrDefault(JSONArray())
         return (0 until array.length()).mapNotNull { index ->
             val item = array.optJSONObject(index) ?: return@mapNotNull null
@@ -23,13 +22,12 @@ class SharedPreferencesConnectionHistory(private val prefs: SharedPreferences) :
             entries().filterNot { it.url == url }.take(MAX_ENTRIES - 1)
         val array = JSONArray()
         recent.forEach { array.put(JSONObject().put("url", it.url).put("at", it.connectedAtMs)) }
-        prefs.edit().putString(KEY, array.toString()).apply()
+        store.put(SecureConnectionStore.HISTORY, array.toString())
     }
 
-    override fun clear() = prefs.edit().remove(KEY).apply()
+    override fun clear() = store.remove(SecureConnectionStore.HISTORY)
 
     private companion object {
-        const val KEY = "history"
         const val MAX_ENTRIES = 10
     }
 }

@@ -152,23 +152,27 @@
                 android:textStyle="bold" />
             <EditText
                 android:id="@+id/onvif_user"
+                android:importantForAutofill="no"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/outline_button"
                 android:hint="@string/username"
                 android:inputType="text"
+                android:saveEnabled="false"
                 android:paddingHorizontal="12dp"
                 android:singleLine="true"
                 android:textSize="14sp" />
             <EditText
                 android:id="@+id/onvif_password"
+                android:importantForAutofill="no"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/outline_button"
                 android:hint="@string/password"
                 android:inputType="textPassword"
+                android:saveEnabled="false"
                 android:paddingHorizontal="12dp"
                 android:singleLine="true"
                 android:textSize="14sp" />

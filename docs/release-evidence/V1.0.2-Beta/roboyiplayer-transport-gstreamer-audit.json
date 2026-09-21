@@ -1,0 +1,59 @@
+{
+  "artifact": {
+    "name": "roboyiplayer-transport-gstreamer-avc-hevc-release.aar",
+    "path": "roboyigstreamer\\build\\outputs\\aar\\roboyiplayer-transport-gstreamer-avc-hevc-release.aar",
+    "sha256": "e1a62777449c136ddeb6de2f7322a563df93409a9eb22c27428f88b926309b4e",
+    "size": 9145062
+  },
+  "codec_scope": "AVC_HEVC",
+  "gstreamer": {
+    "plugins": [
+      "coreelements",
+      "app",
+      "typefindfunctions",
+      "tcp",
+      "udp",
+      "rtsp",
+      "rtp",
+      "rtpmanager",
+      "videoparsersbad"
+    ],
+    "version": "1.28.6"
+  },
+  "native_libraries": [
+    {
+      "path": "jni/arm64-v8a/libc++_shared.so",
+      "sha256": "8533b838c52389bd1610c696ecad19c1fa53d2784b3b18ab3375e52904f1f767",
+      "size": 1293144
+    },
+    {
+      "path": "jni/arm64-v8a/libgstreamer_android.so",
+      "sha256": "dba27390c1d6f3efc851f0f102d77580ab37a8daca2402fc4df4b069cf5e67ca",
+      "size": 9308576
+    },
+    {
+      "path": "jni/arm64-v8a/libroboyi_gstreamer.so",
+      "sha256": "ba07e72e15887afdf1d43016464009e32f564ed4fca7faf85717d107b14f44a1",
+      "size": 90424
+    },
+    {
+      "path": "jni/armeabi-v7a/libc++_shared.so",
+      "sha256": "56134acc9283387f2e1e5a91fed995754c674f9fcfc5ded5dd82e3be8e79140c",
+      "size": 872904
+    },
+    {
+      "path": "jni/armeabi-v7a/libgstreamer_android.so",
+      "sha256": "92cb502a7549b4a29865bda12e208febf2d61f7518eee7f0290aa3fc9ee2925a",
+      "size": 7299468
+    },
+    {
+      "path": "jni/armeabi-v7a/libroboyi_gstreamer.so",
+      "sha256": "5a547e6ec6e664d0e5fa0164fe45a5367aa9c5b002dd69c31f7896cf7525417e",
+      "size": 44116
+    }
+  ],
+  "profile": "roboyiplayer-transport-gstreamer",
+  "schema_version": 1,
+  "status": "PASS",
+  "warnings": []
+}

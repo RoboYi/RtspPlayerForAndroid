@@ -1,0 +1,395 @@
+{
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "bom-ref": "roboyiplayer-gstreamer-adapter",
+      "externalReferences": [],
+      "licenses": [
+        {
+          "expression": "LicenseRef-Proprietary"
+        }
+      ],
+      "name": "RoboYiPlayer GStreamer transport adapter",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "true"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libroboyi_gstreamer.so"
+        },
+        {
+          "name": "roboyi:component-role",
+          "value": "proprietary-wrapper"
+        }
+      ],
+      "supplier": {
+        "name": "RoboYi"
+      },
+      "type": "library",
+      "version": "1.0.2-Beta"
+    },
+    {
+      "bom-ref": "gstreamer",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://gstreamer.freedesktop.org/"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-2.1-or-later"
+        }
+      ],
+      "name": "GStreamer Android runtime and selected plugins",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "false"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libgstreamer_android.so"
+        }
+      ],
+      "supplier": {
+        "name": "GStreamer project"
+      },
+      "type": "library",
+      "version": "1.28.6"
+    },
+    {
+      "bom-ref": "glib",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://download.gnome.org/sources/glib/2.82/glib-2.82.4.tar.xz"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-2.1-or-later"
+        }
+      ],
+      "name": "GLib, GObject and GIO",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "true"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libgstreamer_android.so"
+        }
+      ],
+      "supplier": {
+        "name": "GNOME project"
+      },
+      "type": "library",
+      "version": "2.82.4"
+    },
+    {
+      "bom-ref": "libffi",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://gitlab.freedesktop.org/gstreamer/meson-ports/libffi/-/archive/meson-3.2.9999.5/libffi-meson-3.2.9999.5.tar.bz2"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "libffi meson port",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "false"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libgstreamer_android.so"
+        }
+      ],
+      "supplier": {
+        "name": "libffi/GStreamer meson-ports contributors"
+      },
+      "type": "library",
+      "version": "3.2.9999.5"
+    },
+    {
+      "bom-ref": "pcre2",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.bz2"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "PCRE2",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "true"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libgstreamer_android.so"
+        }
+      ],
+      "supplier": {
+        "name": "PCRE2 project"
+      },
+      "type": "library",
+      "version": "10.42"
+    },
+    {
+      "bom-ref": "orc",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://gstreamer.freedesktop.org/src/orc/orc-0.4.42.tar.xz"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "ORC",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "false"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libgstreamer_android.so"
+        }
+      ],
+      "supplier": {
+        "name": "GStreamer project"
+      },
+      "type": "library",
+      "version": "0.4.42"
+    },
+    {
+      "bom-ref": "zlib",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://zlib.net/fossils/zlib-1.3.1.tar.gz"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Zlib"
+        }
+      ],
+      "name": "zlib",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "true"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libgstreamer_android.so"
+        }
+      ],
+      "supplier": {
+        "name": "zlib contributors"
+      },
+      "type": "library",
+      "version": "1.3.1"
+    },
+    {
+      "bom-ref": "proxy-libintl",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/frida/proxy-libintl/archive/refs/tags/0.5.tar.gz"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-2.1-or-later"
+        }
+      ],
+      "name": "proxy-libintl",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "true"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libgstreamer_android.so"
+        }
+      ],
+      "supplier": {
+        "name": "Frida contributors"
+      },
+      "type": "library",
+      "version": "0.5"
+    },
+    {
+      "bom-ref": "libiconv",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.15.tar.gz"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-2.1-or-later"
+        }
+      ],
+      "name": "GNU libiconv library-only build",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "true"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libgstreamer_android.so"
+        }
+      ],
+      "supplier": {
+        "name": "GNU project"
+      },
+      "type": "library",
+      "version": "1.15"
+    },
+    {
+      "bom-ref": "llvm-libcxx",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://android.googlesource.com/platform/ndk/"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0 WITH LLVM-exception"
+        }
+      ],
+      "name": "LLVM libc++ runtime",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "false"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "libc++_shared.so"
+        }
+      ],
+      "supplier": {
+        "name": "LLVM project / Android NDK"
+      },
+      "type": "library",
+      "version": "NDK-27.0.11718014"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "roboyiplayer-gstreamer-adapter",
+        "gstreamer",
+        "glib",
+        "libffi",
+        "pcre2",
+        "orc",
+        "zlib",
+        "proxy-libintl",
+        "libiconv",
+        "llvm-libcxx"
+      ],
+      "ref": "roboyiplayer-transport-gstreamer"
+    },
+    {
+      "dependsOn": [],
+      "ref": "roboyiplayer-gstreamer-adapter"
+    },
+    {
+      "dependsOn": [],
+      "ref": "gstreamer"
+    },
+    {
+      "dependsOn": [],
+      "ref": "glib"
+    },
+    {
+      "dependsOn": [],
+      "ref": "libffi"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pcre2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "orc"
+    },
+    {
+      "dependsOn": [],
+      "ref": "zlib"
+    },
+    {
+      "dependsOn": [],
+      "ref": "proxy-libintl"
+    },
+    {
+      "dependsOn": [],
+      "ref": "libiconv"
+    },
+    {
+      "dependsOn": [],
+      "ref": "llvm-libcxx"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "roboyiplayer-transport-gstreamer",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e1a62777449c136ddeb6de2f7322a563df93409a9eb22c27428f88b926309b4e"
+        }
+      ],
+      "name": "roboyiplayer-transport-gstreamer-avc-hevc-release.aar",
+      "properties": [
+        {
+          "name": "roboyi:codec-scope",
+          "value": "AVC_HEVC"
+        },
+        {
+          "name": "roboyi:assurance:ffmpeg",
+          "value": "NOT_APPLICABLE_VERIFIED_ABSENT"
+        },
+        {
+          "name": "roboyi:assurance:h264-h265-patents",
+          "value": "EXTERNAL_COMMERCIAL_APPROVAL_REQUIRED"
+        },
+        {
+          "name": "roboyi:assurance:rockchip-mpp",
+          "value": "NOT_APPLICABLE_VERIFIED_ABSENT"
+        }
+      ],
+      "type": "library"
+    }
+  },
+  "serialNumber": "urn:uuid:b58986e3-1040-52bc-b2a9-48992b19c93a",
+  "specVersion": "1.6",
+  "version": 1
+}

@@ -1,0 +1,15 @@
+{
+  "artifact": {
+    "name": "roboyiplayer-core-avc-hevc-release.aar",
+    "path": "roboyiplayer\\build\\outputs\\aar\\roboyiplayer-core-avc-hevc-release.aar",
+    "sha256": "2e6dbdff2882c83e28114cee65c8cff7c496d94ae665cf2105bde858de0a3c88",
+    "size": 1344690
+  },
+  "codec_scope": "AVC_HEVC",
+  "gstreamer": null,
+  "native_libraries": [],
+  "profile": "roboyiplayer-core",
+  "schema_version": 1,
+  "status": "PASS",
+  "warnings": []
+}

@@ -10,11 +10,17 @@ interface ConnectionHistoryRepository {
 }
 
 object RtspAddress {
-    fun isSupported(url: String): Boolean =
-        url.startsWith("rtsp://", ignoreCase = true) ||
-            url.startsWith("rtsps://", ignoreCase = true)
+    fun isSupported(url: String): Boolean = runCatching {
+        val uri = java.net.URI(url)
+        (uri.scheme.equals("rtsp", true) || uri.scheme.equals("rtsps", true)) &&
+            !uri.host.isNullOrBlank() && uri.port in -1..65535 && uri.port != 0 &&
+            url.none { it.isISOControl() }
+    }.getOrDefault(false)
 
-    /** 仅用于界面展示；持久化时仍须保留原 URL 才能重连。 */
-    fun maskCredentials(url: String): String =
-        url.replace(Regex("//[^/@]+@"), "//••••@")
+    /** History rows show only the endpoint; paths and query strings can also hold secrets. */
+    fun maskCredentials(url: String): String = runCatching {
+        val uri = java.net.URI(url)
+        require(isSupported(url))
+        "${uri.scheme.lowercase()}://${uri.host}${if (uri.port == -1) "" else ":${uri.port}"}"
+    }.getOrDefault("RTSP")
 }

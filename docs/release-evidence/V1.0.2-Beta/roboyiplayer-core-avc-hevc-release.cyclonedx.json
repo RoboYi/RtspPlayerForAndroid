@@ -1,0 +1,80 @@
+{
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "bom-ref": "roboyiplayer-core",
+      "externalReferences": [],
+      "licenses": [
+        {
+          "expression": "LicenseRef-Proprietary"
+        }
+      ],
+      "name": "RoboYiPlayer core Android SDK",
+      "properties": [
+        {
+          "name": "roboyi:modified",
+          "value": "true"
+        },
+        {
+          "name": "roboyi:bundled-binary",
+          "value": "classes.jar"
+        },
+        {
+          "name": "roboyi:component-role",
+          "value": "proprietary-core"
+        }
+      ],
+      "supplier": {
+        "name": "RoboYi"
+      },
+      "type": "library",
+      "version": "1.0.2-Beta"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "roboyiplayer-core"
+      ],
+      "ref": "roboyiplayer-core"
+    },
+    {
+      "dependsOn": [],
+      "ref": "roboyiplayer-core"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "roboyiplayer-core",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2e6dbdff2882c83e28114cee65c8cff7c496d94ae665cf2105bde858de0a3c88"
+        }
+      ],
+      "name": "roboyiplayer-core-avc-hevc-release.aar",
+      "properties": [
+        {
+          "name": "roboyi:codec-scope",
+          "value": "AVC_HEVC"
+        },
+        {
+          "name": "roboyi:assurance:ffmpeg",
+          "value": "NOT_APPLICABLE_VERIFIED_ABSENT"
+        },
+        {
+          "name": "roboyi:assurance:h264-h265-patents",
+          "value": "EXTERNAL_COMMERCIAL_APPROVAL_REQUIRED"
+        },
+        {
+          "name": "roboyi:assurance:rockchip-mpp",
+          "value": "NOT_APPLICABLE_VERIFIED_ABSENT"
+        }
+      ],
+      "type": "library"
+    }
+  },
+  "serialNumber": "urn:uuid:e16763b8-00f4-58c4-835b-cbd2f5784e06",
+  "specVersion": "1.6",
+  "version": 1
+}

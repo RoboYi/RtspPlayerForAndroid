@@ -2,16 +2,22 @@
 
 本项目是 **RoboYi RTSP SDK 的独立 Android demo**。开发者可以先运行 demo 体验网络摄像机搜索、RTSP 播放、截图和录像，再按照下方示例把 SDK 接入自己的应用。播放器与设备发现的实现位于 SDK AAR 中；本项目负责界面、交互和调用示例。
 
+商业上架风险和当前阻断项见 [上架评估](docs/STORE_RELEASE_RISK_REVIEW.md)。更新 SDK 时须同时重建并重命名两个 AAR 文件中的版本号，并同步修改 `app/build.gradle` 的 `sdkArtifactVersion`、app 版本及本文的文件名/版本描述；不要仅更改 Gradle 中的引用而保留旧制品。
+
+制作 release 包前，将 `release-policy.properties.example` 复制为 `release-policy.properties`，填写真实上架主体及已发布的 HTTPS 隐私政策地址。构建会校验这两项并在 app 中提供完整政策入口；隐私政策草案见 [PRIVACY_POLICY_DRAFT.md](docs/PRIVACY_POLICY_DRAFT.md)。
+
+正式商业授权签发后，将 `release-license.properties.example` 复制为 `release-license.properties`，填入匹配本 app 的 RYL4 正式许可证和授权方公开 `.spki` 文件路径。release 构建核验签名、包名、应用名、功能及有效期，并拒绝 demo 许可证；私钥不要复制到本工程。
+
 **申请 SDK、试用授权或商业授权：请联系 [RoboYi@126.com](mailto:RoboYi@126.com)。**
 
-示例APK下载地址：https://github.com/RoboYi/RtspPlayerForAndroid/releases/tag/V1.0.1_Beta
+历史示例 APK（V1.0.1 Beta）：https://github.com/RoboYi/RtspPlayerForAndroid/releases/tag/V1.0.1_Beta
 
 ## 先看能做什么
 
 | 场景 | 本 demo 的用法 |
 | --- | --- |
 | 查找摄像机 | 自动搜索局域网 ONVIF 设备
-| 查看设备信息 | 展示型号、固件、序列号、服务地址、Scopes、设备原始响应和可用码流 |
+| 查看设备信息 | 展示型号、固件、序列号、服务地址、Scopes 和可用码流；原始响应仅在 debug 包展示 |
 | 获取 RTSP 地址 | 区分设备通过 ONVIF 返回的地址与根据常见路径生成的**待验证候选地址** |
 | 播放视频 | 播放 RTSP，切换解码模式和画面比例，点击视频上的按钮进入横屏全屏 |
 | 保存画面 | 截图、MP4 录像、录像暂停与继续，以及文字、图片和全画幅 Bitmap 绘图水印 |
@@ -46,11 +52,11 @@ SDK 支持 H.264/H.265 RTSP 拉流，使用 Android MediaCodec 解码。本 demo
 
 ### 1. 添加 SDK AAR
 
-本 demo 使用两个本地 AAR，当前 SDK 版本均为 `V1.0.1-Beta`：
+本 demo 使用两个本地 AAR，当前 SDK 版本均为 `V1.0.2-Beta`：
 
 ```text
-app/libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.1-Beta.aar
-app/libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.1-Beta.aar
+app/libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.2-Beta.aar
+app/libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.2-Beta.aar
 ```
 
 Core AAR 提供播放器、录制、截图和设备发现 API；Transport AAR 提供 RTSP 传输运行时及原生库。**两个 AAR 的 codec scope 必须一致**，不能混用 `AVC` 与 `AVC_HEVC`。拿到正式交付包后，以交付的文件名和授权范围替换示例文件。
@@ -59,12 +65,12 @@ Core AAR 提供播放器、录制、截图和设备发现 API；Transport AAR �
 
 ```gradle
 dependencies {
-    implementation files('libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.1-Beta.aar')
-    implementation files('libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.1-Beta.aar')
+    implementation files('libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.2-Beta.aar')
+    implementation files('libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.2-Beta.aar')
 }
 ```
 
-示例工程的 `minSdk` 为 24、`compileSdk` 为 35。应用至少需要网络权限；若摄像机使用明文 RTSP/HTTP，请允许明文流量：
+示例工程的 `minSdk` 为 24、`compileSdk` / `targetSdk` 为 36。应用至少需要网络权限；若摄像机使用明文 RTSP/HTTP，请允许明文流量：
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
@@ -289,4 +295,4 @@ SDK 供应方的具体发布流程见 SDK 工程的 `docs/compliance/COMPLIANCE_
 | RTSP 无法播放 | 检查 URL、账号密码、端口、网络连通性及摄像机使用的 H.264/H.265 码流 |
 | 录像或截图不可用 | 确认视频已经播放、许可证包含对应功能，并查看页面给出的错误信息 |
 
-本 demo 的截图和录像默认存放在应用专属目录 `Android/data/com.roboyi.rtspdemo/files/captures`。若 RTSP URL 内含账号密码，分享日志或截图前请注意遮盖凭据。
+新生成的截图和录像保存在应用内部 `files/captures`，通过应用内“本地文件”查看或删除；升级前已保存在 `Android/data/com.roboyi.rtspdemo/files/captures` 的旧文件仍会显示，直到用户删除。若 RTSP URL 内含账号密码，分享日志或截图前请注意遮盖凭据。

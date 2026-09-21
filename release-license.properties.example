@@ -1,0 +1,5 @@
+# Copy to release-license.properties after commercial approval and license issuance.
+# Put only the signed RYL4 license token here; never put a private signing key in this project.
+licenseKey=
+# Absolute path to the issuer's public .spki file. The release task verifies the token signature.
+publicKeyFile=E:/roboyi-keys/prod-2026-01-public.spki

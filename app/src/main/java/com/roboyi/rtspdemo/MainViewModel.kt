@@ -10,6 +10,7 @@ import com.roboyi.rtsp.DecoderMode
 import com.roboyi.rtsp.CameraDevice
 import com.roboyi.rtspdemo.data.AppCaptureRepository
 import com.roboyi.rtspdemo.data.SharedPreferencesConnectionHistory
+import com.roboyi.rtspdemo.data.SecureConnectionStore
 import com.roboyi.rtspdemo.domain.CaptureLibrary
 import com.roboyi.rtspdemo.domain.ConnectionEntry
 import com.roboyi.rtspdemo.domain.ConnectionHistoryRepository
@@ -19,6 +20,14 @@ import java.io.File
 
 internal enum class PlaybackPhase { STOPPED, CONNECTING, PLAYING }
 internal enum class SidebarTab { HISTORY, ONVIF, CAPTURES }
+
+internal data class LocalDataDeletionResult(
+    val capturesRequested: Int,
+    val capturesDeleted: Int,
+    val watermarkDeleted: Boolean
+) {
+    val complete: Boolean get() = capturesRequested == capturesDeleted && watermarkDeleted
+}
 
 internal data class MainUiState(
     val licensed: Boolean = false,
@@ -45,6 +54,7 @@ internal data class MainUiState(
 internal class MainViewModel(
     private val appContext: Context,
     private val prefs: SharedPreferences,
+    private val connectionStore: SecureConnectionStore,
     private val historyRepository: ConnectionHistoryRepository,
     private val captureLibrary: CaptureLibrary,
     initialWatermark: WatermarkSettings
@@ -62,7 +72,7 @@ internal class MainViewModel(
     )
     val uiState: LiveData<MainUiState> = mutableState
     val state: MainUiState get() = checkNotNull(mutableState.value)
-    val lastUrl: String get() = prefs.getString("last_url", DEFAULT_RTSP_URL).orEmpty()
+    val lastUrl: String get() = connectionStore.get(SecureConnectionStore.LAST_URL).orEmpty()
 
     private fun update(transform: (MainUiState) -> MainUiState) {
         mutableState.value = transform(state)
@@ -78,7 +88,7 @@ internal class MainViewModel(
 
     fun onConnectRequested(url: String) {
         workflow.onConnectRequested(url)
-        prefs.edit().putString("last_url", url).apply()
+        connectionStore.put(SecureConnectionStore.LAST_URL, url)
         update { it.copy(playback = PlaybackPhase.CONNECTING, streamInfo = appContext.getString(R.string.connecting_stream)) }
     }
 
@@ -158,6 +168,13 @@ internal class MainViewModel(
         update { it.copy(watermark = settings) }
     }
 
+    fun deleteWatermarkImage(): Boolean {
+        val image = File(appContext.filesDir, "demo-watermark.png")
+        if (image.exists() && !image.delete()) return false
+        update { it.copy(watermark = it.watermark.copy(imagePath = null)) }
+        return true
+    }
+
     fun newSnapshotFile(): File = captureLibrary.newSnapshotFile()
     fun newRecordingFile(): File = captureLibrary.newRecordingFile()
 
@@ -185,7 +202,26 @@ internal class MainViewModel(
 
     fun clearHistory() {
         historyRepository.clear()
+        connectionStore.remove(SecureConnectionStore.LAST_URL)
         update { it.copy(history = historyRepository.entries()) }
+    }
+
+    fun deleteLocalData(): LocalDataDeletionResult {
+        val (captureCount, deleted) = captureLibrary.deleteAll()
+        val imageDeleted = deleteWatermarkImage()
+        clearHistory()
+        check(prefs.edit().remove("watermark_text").commit()) {
+            "Could not clear local watermark text"
+        }
+        update { it.copy(
+            watermark = WatermarkSettings(),
+            onvifSearching = false,
+            onvifSearchCompleted = false,
+            onvifDevices = emptyList(),
+            onvifHint = appContext.getString(R.string.onvif_initial_hint)
+        ) }
+        refreshCaptures()
+        return LocalDataDeletionResult(captureCount, deleted, imageDeleted)
     }
 
     fun showTab(tab: SidebarTab) = update { it.copy(tab = tab) }
@@ -215,6 +251,7 @@ internal class MainViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(MainViewModel::class.java))
             val prefs = appContext.getSharedPreferences("demo", Context.MODE_PRIVATE)
+            val connectionStore = SecureConnectionStore(appContext, prefs)
             val watermark = WatermarkSettings(
                 text = prefs.getString("watermark_text", "").orEmpty(),
                 imagePath = File(appContext.filesDir, "demo-watermark.png")
@@ -224,15 +261,12 @@ internal class MainViewModel(
             return MainViewModel(
                 appContext,
                 prefs,
-                SharedPreferencesConnectionHistory(prefs),
+                connectionStore,
+                SharedPreferencesConnectionHistory(connectionStore),
                 CaptureLibrary(AppCaptureRepository(appContext)),
                 watermark
             ) as T
         }
     }
 
-    companion object {
-        private const val DEFAULT_RTSP_URL =
-            "rtsp://172.169.10.65:554/H264?W=1920&H=1080&FPS=30&BR=8000000"
-    }
 }

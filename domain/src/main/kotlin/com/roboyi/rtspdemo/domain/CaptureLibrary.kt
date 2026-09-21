@@ -8,6 +8,7 @@ interface CaptureRepository {
     fun newFile(prefix: String, extension: String): File
     fun files(): List<File>
     fun delete(files: Collection<File>): Int
+    fun deleteAll(): Pair<Int, Int>
 }
 
 class CaptureLibrary(private val repository: CaptureRepository) {
@@ -21,4 +22,7 @@ class CaptureLibrary(private val repository: CaptureRepository) {
         repository.files().filterNot { it == activeRecording }
 
     fun delete(files: Collection<File>): Int = repository.delete(files)
+
+    /** Includes incomplete and zero-byte captures that are hidden from the library. */
+    fun deleteAll(): Pair<Int, Int> = repository.deleteAll()
 }

@@ -1,0 +1,70 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "annotations": [
+    {
+      "annotationDate": "1970-01-01T00:00:00Z",
+      "annotationType": "OTHER",
+      "annotator": "Tool: RoboYiPlayer compliance tooling",
+      "comment": "ffmpeg=NOT_APPLICABLE_VERIFIED_ABSENT"
+    },
+    {
+      "annotationDate": "1970-01-01T00:00:00Z",
+      "annotationType": "OTHER",
+      "annotator": "Tool: RoboYiPlayer compliance tooling",
+      "comment": "h264-h265-patents=EXTERNAL_COMMERCIAL_APPROVAL_REQUIRED"
+    },
+    {
+      "annotationDate": "1970-01-01T00:00:00Z",
+      "annotationType": "OTHER",
+      "annotator": "Tool: RoboYiPlayer compliance tooling",
+      "comment": "rockchip-mpp=NOT_APPLICABLE_VERIFIED_ABSENT"
+    }
+  ],
+  "creationInfo": {
+    "created": "1970-01-01T00:00:00Z",
+    "creators": [
+      "Tool: RoboYiPlayer compliance tooling"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://roboyi.example/sbom/e16763b8-00f4-58c4-835b-cbd2f5784e06",
+  "name": "roboyiplayer-core-avc-hevc-release.aar-sbom",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Artifact",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2e6dbdff2882c83e28114cee65c8cff7c496d94ae665cf2105bde858de0a3c88"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "roboyiplayer-core-avc-hevc-release.aar",
+      "versionInfo": "AVC_HEVC"
+    },
+    {
+      "SPDXID": "SPDXRef-roboyiplayer-core",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "externalRefs": [],
+      "filesAnalyzed": false,
+      "licenseConcluded": "LicenseRef-Proprietary",
+      "licenseDeclared": "LicenseRef-Proprietary",
+      "name": "RoboYiPlayer core Android SDK",
+      "supplier": "Organization: RoboYi",
+      "versionInfo": "1.0.2-Beta"
+    }
+  ],
+  "relationships": [
+    {
+      "relatedSpdxElement": "SPDXRef-roboyiplayer-core",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-Artifact"
+    }
+  ],
+  "spdxVersion": "SPDX-2.3"
+}

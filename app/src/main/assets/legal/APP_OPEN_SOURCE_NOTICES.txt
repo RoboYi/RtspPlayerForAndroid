@@ -1,0 +1,40 @@
+RtspPlayer open-source notices
+==============================
+
+This app uses AndroidX libraries (Core, AppCompat, Activity, Fragment,
+Lifecycle, ViewBinding and their runtime dependencies), the Kotlin standard
+library, kotlinx.coroutines, and Guava ListenableFuture. These components are
+distributed under the Apache License, Version 2.0; the license text is included
+as legal/Apache-2.0.txt. Exact resolved versions are recorded in the release
+dependency inventory supplied with the app's release evidence.
+
+The RoboYiPlayer GStreamer transport includes GStreamer 1.28.6, GLib/GObject/
+GIO 2.82.4, proxy-libintl 0.5 and GNU libiconv 1.15 under LGPL-2.1-or-later.
+The full LGPL text is included as
+roboyiplayer/legal/GSTREAMER-LGPL-2.1-or-later.txt. The transport also includes
+libffi 3.2.9999.5 (MIT), PCRE2 10.42 (BSD-3-Clause), ORC 0.4.42
+(BSD-3-Clause), and zlib 1.3.1 (zlib license). Their license/notice texts are
+included in this legal/ directory. The bundled Android NDK libc++ runtime is
+covered by Apache-2.0 WITH LLVM-exception. The Apache text and LLVM exception
+are included in this legal/ directory; see the release component inventory
+for the exact bundled binary.
+
+GStreamer source and the method for rebuilding and replacing the LGPL runtime
+are documented in the corresponding-source package for the exact release. The
+runtime is a separate shared library (libgstreamer_android.so). The proprietary
+RoboYiPlayer license does not restrict rights granted by these open-source
+licenses.
+
+Upstream projects:
+AndroidX: https://android.googlesource.com/platform/frameworks/support/
+Kotlin: https://github.com/JetBrains/kotlin
+kotlinx.coroutines: https://github.com/Kotlin/kotlinx.coroutines
+Guava: https://github.com/google/guava
+GStreamer: https://gstreamer.freedesktop.org/
+GLib: https://gitlab.gnome.org/GNOME/glib
+GNU libiconv: https://www.gnu.org/software/libiconv/
+libffi: https://github.com/libffi/libffi
+PCRE2: https://github.com/PCRE2Project/pcre2
+ORC: https://gstreamer.freedesktop.org/projects/orc.html
+zlib: https://zlib.net/
+LLVM libc++: https://github.com/llvm/llvm-project/tree/main/libcxx

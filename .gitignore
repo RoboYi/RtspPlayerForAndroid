@@ -4,8 +4,12 @@
 **/build/
 local.properties
 release-signing.properties
+release-policy.properties
+release-license.properties
 *.jks
 *.keystore
 *.p12
 *.apk
 *.iml
+__pycache__/
+*.pyc

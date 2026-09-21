@@ -1,0 +1,30 @@
+{
+  "artifacts": [
+    {
+      "name": "roboyiplayer-core-avc-hevc-release.aar",
+      "profile": "roboyiplayer-core",
+      "sha256": "2e6dbdff2882c83e28114cee65c8cff7c496d94ae665cf2105bde858de0a3c88"
+    },
+    {
+      "name": "roboyiplayer-transport-gstreamer-avc-hevc-release.aar",
+      "profile": "roboyiplayer-transport-gstreamer",
+      "sha256": "e1a62777449c136ddeb6de2f7322a563df93409a9eb22c27428f88b926309b4e"
+    }
+  ],
+  "assuranceDeclarations": {
+    "ffmpeg": "NOT_APPLICABLE_VERIFIED_ABSENT",
+    "h264-h265-patents": "EXTERNAL_COMMERCIAL_APPROVAL_REQUIRED",
+    "rockchip-mpp": "NOT_APPLICABLE_VERIFIED_ABSENT"
+  },
+  "codecScope": "AVC_HEVC",
+  "product": "RoboYiPlayer SDK",
+  "relationships": [
+    {
+      "from": "roboyiplayer-core",
+      "scope": "optional-runtime-provider",
+      "to": "roboyiplayer-transport-gstreamer",
+      "type": "DEPENDS_ON"
+    }
+  ],
+  "schemaVersion": 1
+}

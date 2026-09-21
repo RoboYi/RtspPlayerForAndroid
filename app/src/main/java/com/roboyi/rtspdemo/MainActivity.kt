@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -99,14 +100,37 @@ class MainActivity : AppCompatActivity() {
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@registerForActivityResult
         runCatching {
-            val target = File(filesDir, "demo-watermark.png")
-            contentResolver.openInputStream(uri)?.use { source ->
-                target.outputStream().use { source.copyTo(it) }
-            } ?: error(getString(R.string.image_read_failed))
-            viewModel.setWatermark(viewModel.state.watermark.copy(imagePath = target.absolutePath))
-            updateCurrentWatermark()
+            val staged = File.createTempFile("watermark-", ".tmp", cacheDir)
+            try {
+                contentResolver.openInputStream(uri)?.use { source ->
+                    staged.outputStream().use { output ->
+                        val buffer = ByteArray(8192)
+                        var total = 0L
+                        while (true) {
+                            val count = source.read(buffer)
+                            if (count < 0) break
+                            check(count > 0) { getString(R.string.image_read_failed) }
+                            total += count
+                            check(total <= 10L * 1024 * 1024) { getString(R.string.image_too_large) }
+                            output.write(buffer, 0, count)
+                        }
+                    }
+                } ?: error(getString(R.string.image_read_failed))
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFile(staged.absolutePath, bounds)
+                check(bounds.outWidth in 1..4096 && bounds.outHeight in 1..4096 &&
+                    bounds.outWidth.toLong() * bounds.outHeight <= 16_000_000L) {
+                    getString(R.string.image_invalid_dimensions)
+                }
+                val target = File(filesDir, "demo-watermark.png")
+                staged.inputStream().use { source -> target.outputStream().use { source.copyTo(it) } }
+                viewModel.setWatermark(viewModel.state.watermark.copy(imagePath = target.absolutePath))
+                updateCurrentWatermark()
+            } finally {
+                staged.delete()
+            }
         }.onSuccess { showMessage(getString(R.string.watermark_image_updated)) }
-            .onFailure { showMessage(getString(R.string.image_import_failed, it.message)) }
+            .onFailure { showMessage(getString(R.string.image_import_failed, safeError(it))) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,7 +165,7 @@ class MainActivity : AppCompatActivity() {
             player?.setFillMode(viewModel.toggleFillMode())
         }
 
-        activateLicense()
+        showDataNoticeIfNeeded()
         viewModel.refreshCaptures()
         refreshPlayerStatus()
     }
@@ -360,8 +384,8 @@ class MainActivity : AppCompatActivity() {
             viewModel.onLicenseFailed(getString(R.string.license_unavailable_code, e.code))
             showMessage(getString(R.string.license_failed, e.code))
         } catch (e: Exception) {
-            viewModel.onLicenseFailed(getString(R.string.license_unavailable_detail, e.message))
-            showMessage(getString(R.string.license_failed, e.message))
+            viewModel.onLicenseFailed(getString(R.string.license_unavailable_detail, safeError(e)))
+            showMessage(getString(R.string.license_failed, safeError(e)))
         }
     }
 
@@ -401,7 +425,7 @@ class MainActivity : AppCompatActivity() {
             fragment.play(url, watermarkSpec(WatermarkTarget.PREVIEW))
         }.onFailure {
             viewModel.onStopped()
-            showMessage(getString(R.string.connect_failed, it.message))
+            showMessage(getString(R.string.connect_failed, safeError(it)))
         }
     }
 
@@ -410,7 +434,7 @@ class MainActivity : AppCompatActivity() {
             if (viewModel.state.recordingFile != null) stopRecording()
             player?.stop()
             viewModel.onStopped()
-        }.onFailure { showMessage(getString(R.string.stop_failed, it.message)) }
+        }.onFailure { showMessage(getString(R.string.stop_failed, safeError(it))) }
     }
 
     private fun toggleRecordingPause() {
@@ -422,7 +446,7 @@ class MainActivity : AppCompatActivity() {
             if (!changed) error(getString(R.string.recording_channel_unavailable))
             viewModel.onRecordingPauseChanged(!wasPaused)
         }.onFailure { showMessage(getString(if (wasPaused) R.string.resume_recording_failed
-            else R.string.pause_recording_failed, it.message)) }
+            else R.string.pause_recording_failed, safeError(it))) }
     }
 
     private fun snapshot() {
@@ -436,7 +460,7 @@ class MainActivity : AppCompatActivity() {
             val callback: (Boolean, Throwable?) -> Unit = { ok, error ->
                 runOnUiThread {
                     showMessage(if (ok) getString(R.string.screenshot_saved, target.absolutePath)
-                        else getString(R.string.screenshot_failed, error?.message))
+                        else getString(R.string.screenshot_failed, safeError(error)))
                     if (ok) viewModel.refreshCaptures()
                 }
             }
@@ -447,7 +471,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 fragment.captureSurfaceScreenshot(target, callback = callback)
             }
-        }.onFailure { showMessage(getString(R.string.screenshot_failed, it.message)) }
+        }.onFailure { showMessage(getString(R.string.screenshot_failed, safeError(it))) }
     }
 
     private fun toggleRecording() {
@@ -483,14 +507,14 @@ class MainActivity : AppCompatActivity() {
             }
         }.onFailure {
             viewModel.onRecordingStopped()
-            showMessage(getString(R.string.recording_failed, it.message))
+            showMessage(getString(R.string.recording_failed, safeError(it)))
         }
     }
 
     private fun stopRecording() {
         // SDK 可能从自己的安全停止回调通知结束；手动停止在此统一复位页面状态。
         runCatching { player?.stopAllRecordings() }
-            .onFailure { showMessage(getString(R.string.stop_recording_failed, it.message)) }
+            .onFailure { showMessage(getString(R.string.stop_recording_failed, safeError(it))) }
         viewModel.onRecordingStopped()?.let { showMessage(getString(R.string.recording_saved, it.absolutePath)) }
     }
 
@@ -546,7 +570,7 @@ class MainActivity : AppCompatActivity() {
                 setDataAndType(uri, mime)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             })
-        }.onFailure { showMessage(getString(R.string.file_open_failed, it.message)) }
+        }.onFailure { showMessage(getString(R.string.file_open_failed, safeError(it))) }
     }
 
     private fun confirmDeleteCaptures() {
@@ -612,6 +636,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.clear_history_prompt)
             .setPositiveButton(R.string.clear) { _, _ ->
                 viewModel.clearHistory()
+                urlInput.setText("")
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -619,6 +644,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun searchOnvif() {
         val credentials = onvifCredentials()
+        if (credentials.username.isBlank() && credentials.password.isBlank()) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.default_credentials_title)
+                .setMessage(R.string.default_credentials_notice)
+                .setPositiveButton(R.string.search_devices) { _, _ -> performOnvifSearch(credentials) }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+            return
+        }
+        performOnvifSearch(credentials)
+    }
+
+    private fun performOnvifSearch(credentials: OnvifCredentials) {
         val requestId = ++discoveryRequestId
         viewModel.onOnvifSearchStarted()
         runCatching {
@@ -629,7 +667,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }.onFailure {
-            viewModel.setOnvifHint(getString(R.string.search_failed, it.message))
+            viewModel.setOnvifHint(getString(R.string.search_failed, safeError(it)))
         }
     }
 
@@ -650,7 +688,7 @@ class MainActivity : AppCompatActivity() {
                     showCameraDetails(details, credentials)
                 }
             }
-        }.onFailure { viewModel.setOnvifHint(getString(R.string.inspection_failed, it.message)) }
+        }.onFailure { viewModel.setOnvifHint(getString(R.string.inspection_failed, safeError(it))) }
     }
 
     private fun showCameraDetails(details: CameraDetails, credentials: OnvifCredentials) {
@@ -709,7 +747,7 @@ class MainActivity : AppCompatActivity() {
                 }
             })
         }
-        if (device.rawResponses.isNotEmpty()) {
+        if (BuildConfig.DEBUG && device.rawResponses.isNotEmpty()) {
             content.addView(TextView(this).apply {
                 text = getString(R.string.raw_responses_header) + device.rawResponses.entries.joinToString("\n\n") {
                     getString(R.string.raw_response_entry, it.key, it.value)
@@ -728,9 +766,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSettings() {
-        val options = arrayOf(getString(R.string.decoder_auto), getString(R.string.decoder_hardware))
+        val options = arrayOf(getString(R.string.decoder_auto), getString(R.string.decoder_hardware),
+            getString(R.string.privacy_notice_title), getString(R.string.privacy_delete_local_data),
+            getString(R.string.open_source_notices))
         AlertDialog.Builder(this).setTitle(R.string.player_settings_title)
             .setItems(options) { _, which ->
+                if (which == 2) {
+                    showPrivacyNotice()
+                    return@setItems
+                }
+                if (which == 3) {
+                    confirmPrivacyReset()
+                    return@setItems
+                }
+                if (which == 4) {
+                    showOpenSourceNotices()
+                    return@setItems
+                }
                 val mode = if (which == 0) DecoderMode.AUTO else DecoderMode.HARDWARE
                 viewModel.setDecoderMode(mode)
                 player?.setDecoderMode(mode)
@@ -738,8 +790,151 @@ class MainActivity : AppCompatActivity() {
             }.show()
     }
 
+    private fun showDataNoticeIfNeeded() {
+        val prefs = getSharedPreferences("demo", MODE_PRIVATE)
+        if (prefs.getString(PRIVACY_ACCEPTED_VERSION_KEY, null) == BuildConfig.PRIVACY_POLICY_VERSION) {
+            activateLicense()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.privacy_notice_title)
+            .setMessage(privacyNoticeText())
+            .setPositiveButton(R.string.privacy_continue) { _, _ ->
+                prefs.edit().putString(PRIVACY_ACCEPTED_VERSION_KEY, BuildConfig.PRIVACY_POLICY_VERSION)
+                    .remove("data_notice_accepted").apply()
+                activateLicense()
+            }
+            .apply { if (BuildConfig.PRIVACY_POLICY_URL.isNotBlank())
+                setNeutralButton(R.string.privacy_full_policy, null) }
+            .setNegativeButton(R.string.privacy_exit) { _, _ -> finish() }
+            .setCancelable(false)
+            .create()
+            .also { dialog ->
+                dialog.setOnShowListener {
+                    dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener { openPrivacyPolicy() }
+                }
+                dialog.show()
+            }
+    }
+
+    private fun showPrivacyNotice() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.privacy_notice_title)
+            .setMessage(privacyNoticeText())
+            .apply { if (BuildConfig.PRIVACY_POLICY_URL.isNotBlank())
+                setNeutralButton(R.string.privacy_full_policy) { _, _ -> openPrivacyPolicy() } }
+            .setPositiveButton(R.string.close, null)
+            .show()
+    }
+
+    private fun privacyNoticeText(): String = buildString {
+        append(getString(R.string.privacy_notice_body))
+        if (BuildConfig.PRIVACY_OPERATOR.isNotBlank()) {
+            append("\n\n")
+            append(getString(R.string.privacy_operator_label, BuildConfig.PRIVACY_OPERATOR))
+        }
+        val email = privacyContactEmail()
+        if (email.isNotBlank()) {
+            append("\n")
+            append(getString(R.string.privacy_contact_label, email))
+        }
+    }
+
+    private fun privacyContactEmail(): String = BuildConfig.PRIVACY_CONTACT_EMAIL
+        .ifBlank { getString(R.string.contact_email_address) }
+
+    private fun confirmPrivacyReset() {
+        if (viewModel.state.onvifSearching) {
+            showMessage(getString(R.string.privacy_wait_for_search))
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.privacy_delete_local_data)
+            .setMessage(R.string.privacy_delete_local_data_confirm)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                val consentCleared = getSharedPreferences("demo", MODE_PRIVATE).edit()
+                    .remove(PRIVACY_ACCEPTED_VERSION_KEY).remove("data_notice_accepted").commit()
+                if (!consentCleared) {
+                    showMessage(getString(R.string.privacy_delete_failed))
+                    return@setPositiveButton
+                }
+                val result = runCatching {
+                    if (viewModel.state.recordingFile != null) {
+                        player?.stopAllRecordings()
+                        viewModel.onRecordingStopped()
+                    }
+                    player?.stop()
+                    viewModel.onStopped()
+                    discoveryRequestId++
+                    detailRequestId++
+                    viewModel.deleteLocalData()
+                }.getOrElse {
+                    AlertDialog.Builder(this)
+                        .setMessage(R.string.privacy_delete_partial)
+                        .setPositiveButton(R.string.close) { _, _ -> finish() }
+                        .setCancelable(false)
+                        .show()
+                    return@setPositiveButton
+                }
+                urlInput.setText("")
+                findViewById<EditText>(R.id.onvif_user).setText("")
+                findViewById<EditText>(R.id.onvif_password).setText("")
+                bitmapWatermark = null
+                if (result.complete) {
+                    showMessage(getString(R.string.privacy_data_deleted))
+                    finish()
+                } else {
+                    AlertDialog.Builder(this)
+                        .setMessage(R.string.privacy_delete_partial)
+                        .setPositiveButton(R.string.close) { _, _ -> finish() }
+                        .setCancelable(false)
+                        .show()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun openPrivacyPolicy() {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_POLICY_URL))) }
+            .onFailure { showMessage(getString(R.string.privacy_open_failed)) }
+    }
+
+    private fun showOpenSourceNotices() {
+        val paths = listOf(
+            "legal/APP_OPEN_SOURCE_NOTICES.txt",
+            "roboyiplayer/legal/GSTREAMER_NOTICE.txt",
+            "roboyiplayer/legal/GSTREAMER-LGPL-2.1-or-later.txt",
+            "legal/Apache-2.0.txt",
+            "legal/LLVM-exception.txt",
+            "legal/libffi-LICENSE.txt",
+            "legal/PCRE2-LICENCE.txt",
+            "legal/ORC-COPYING.txt",
+            "legal/zlib-README.txt"
+        )
+        val notices = runCatching {
+            paths.joinToString("\n\n====================\n\n") { path ->
+                assets.open(path).bufferedReader().use { it.readText() }
+            }
+        }.getOrElse {
+            showMessage(getString(R.string.open_source_unavailable))
+            return
+        }
+        val text = TextView(this).apply {
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            textSize = 12f
+            setTextIsSelectable(true)
+            this.text = notices
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.open_source_notices)
+            .setView(ScrollView(this).apply { addView(text) })
+            .setPositiveButton(R.string.close, null)
+            .show()
+    }
+
     private fun showAbout() {
-        val email = getString(R.string.contact_email_address)
+        val email = privacyContactEmail()
         AlertDialog.Builder(this)
             .setTitle(R.string.about_app)
             .setMessage(getString(R.string.about_details,
@@ -794,7 +989,7 @@ class MainActivity : AppCompatActivity() {
                 ?.copy(Bitmap.Config.ARGB_8888, true)
                 ?: Bitmap.createBitmap(videoWidth, videoHeight, Bitmap.Config.ARGB_8888)
         }.getOrElse {
-            showMessage(getString(R.string.bitmap_create_failed, it.message))
+            showMessage(getString(R.string.bitmap_create_failed, safeError(it)))
             return
         }
         val editor = BitmapWatermarkEditorView(this, draft)
@@ -910,12 +1105,29 @@ class MainActivity : AppCompatActivity() {
             })
         }
         content.addView(positions)
-        content.addView(label(getString(R.string.image_watermark, watermark.imagePath?.let { File(it).name } ?: getString(R.string.none_selected))))
+        val imageLabel = label(getString(R.string.image_watermark,
+            watermark.imagePath?.let { File(it).name } ?: getString(R.string.none_selected)))
+        content.addView(imageLabel)
         val imageButton = Button(this).apply {
             text = getString(R.string.choose_image)
             setOnClickListener { pickImage.launch("image/*") }
         }
         content.addView(imageButton)
+        if (watermark.imagePath != null) {
+            content.addView(Button(this).apply {
+                text = getString(R.string.delete_watermark_image)
+                setOnClickListener {
+                    if (viewModel.deleteWatermarkImage()) {
+                        imageLabel.text = getString(R.string.image_watermark, getString(R.string.none_selected))
+                        visibility = View.GONE
+                        updateCurrentWatermark()
+                        showMessage(getString(R.string.watermark_image_deleted))
+                    } else {
+                        showMessage(getString(R.string.watermark_image_delete_failed))
+                    }
+                }
+            })
+        }
         val previewCheck = CheckBox(this).apply { text = getString(R.string.apply_preview); isChecked = watermark.applyPreview }
         val screenshotCheck = CheckBox(this).apply { text = getString(R.string.apply_screenshot); isChecked = watermark.applyScreenshot }
         val recordingCheck = CheckBox(this).apply { text = getString(R.string.apply_recording); isChecked = watermark.applyRecording }
@@ -954,5 +1166,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun showMessage(text: String) {
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+    }
+
+    /** SDK/network exception messages may contain complete RTSP URLs and camera credentials. */
+    private fun safeError(error: Throwable?): String = error?.javaClass?.simpleName
+        ?.takeIf(String::isNotBlank) ?: "Error"
+
+    private companion object {
+        const val PRIVACY_ACCEPTED_VERSION_KEY = "privacy_notice_accepted_version"
     }
 }

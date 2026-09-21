@@ -1,0 +1,7 @@
+# Copy to release-policy.properties and fill in the actual publishing entity and public policy URL.
+privacyOperator=
+privacyPolicyUrl=
+# A working mailbox controlled by the publishing entity; shown in the app.
+privacyContactEmail=
+# Update when the published policy changes materially so existing users see the notice again.
+privacyPolicyVersion=2026-09-21
