@@ -1,5 +1,7 @@
 # 国内安卓商店正式包交付手册
 
+个人开发者上架时，先阅读 `docs/INDIVIDUAL_CN_STORE_RELEASE_GUIDE.md`；其中包含个人主体可用渠道、软著、个人 APP 备案及本工程特有缺口。
+
 本手册对应 App `com.roboyi.rtspdemo`、默认标签 `RtspPlayer`、版本号 `3 / 1.0.2-Beta` 和两份 `V1.0.2-Beta` AVC+HEVC AAR。执行正式签发或提交前，先固定是否保留 `Beta` 版本显示，以及最终上架主体和具体商店。任何包名、默认应用标签、AAR 或 codec 范围变更，都要重新核对授权与商业审批。
 
 ## 1. 人工填写上架身份和隐私政策
