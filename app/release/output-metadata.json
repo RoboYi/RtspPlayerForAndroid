@@ -4,16 +4,16 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.roboyi.rtspdemo",
+  "applicationId": "com.roboyi.rtspplayer",
   "variantName": "release",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 2,
-      "versionName": "1.0.1-Beta",
-      "outputFile": "RoboYiPlayer-1.0.1-Beta.apk"
+      "versionCode": 3,
+      "versionName": "1.0.2-Beta",
+      "outputFile": "RoboYiPlayer-1.0.2-Beta.apk"
     }
   ],
   "elementType": "File",
@@ -22,14 +22,14 @@
       "minApi": 28,
       "maxApi": 30,
       "baselineProfiles": [
-        "baselineProfiles/1/RoboYiPlayer-1.0.1-Beta.dm"
+        "baselineProfiles/1/RoboYiPlayer-1.0.2-Beta.dm"
       ]
     },
     {
       "minApi": 31,
       "maxApi": 2147483647,
       "baselineProfiles": [
-        "baselineProfiles/0/RoboYiPlayer-1.0.1-Beta.dm"
+        "baselineProfiles/0/RoboYiPlayer-1.0.2-Beta.dm"
       ]
     }
   ],

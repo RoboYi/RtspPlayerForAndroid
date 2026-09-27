@@ -1,39 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/app_header"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    android:gravity="center_vertical"
-    android:orientation="horizontal">
+    android:layout_height="58dp"
+    android:background="@drawable/glass_header"
+    android:elevation="16dp"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
+
         <TextView
+            android:id="@+id/header_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/header_title"
+            android:layout_marginEnd="8dp"
+            android:drawableStart="@drawable/ic_nav_playback"
+            android:drawablePadding="4dp"
+            android:text="@string/nav_playback"
             android:textColor="@color/ink"
-            android:textSize="23sp"
+            android:textSize="17sp"
             android:textStyle="bold" />
+
+        <View android:layout_width="1dp" android:layout_height="22dp" android:background="@color/stroke" />
+
+        <TextView
+            android:id="@+id/stream_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/waiting_stream"
+            android:textColor="@color/muted"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/header_latency"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:maxLines="1"
+            android:text="@string/header_latency_unknown"
+            android:textColor="@color/cyan"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/header_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="9dp"
+            android:text="--:--"
+            android:textColor="@color/ink"
+            android:textSize="15sp" />
+
         <TextView
             android:id="@+id/license_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginEnd="4dp"
+            android:maxLines="1"
             android:text="@string/checking_license"
             android:textColor="@color/muted"
             android:textSize="12sp" />
+
+        <ImageButton
+            android:id="@+id/settings_button"
+            style="@style/HeaderIconButton"
+            android:contentDescription="@string/settings"
+            android:src="@drawable/ic_settings_ios" />
+        <ImageButton
+            android:id="@+id/about_button"
+            style="@style/HeaderIconButton"
+            android:contentDescription="@string/about_app"
+            android:src="@drawable/ic_about_ios" />
+
+        <ImageButton
+            android:id="@+id/header_collapse"
+            style="@style/HeaderIconButton"
+            android:contentDescription="@string/collapse_panel"
+            android:src="@drawable/ic_chevron_up" />
     </LinearLayout>
-    <ImageButton
-        android:id="@+id/settings_button"
-        style="@style/HeaderIconButton"
-        android:contentDescription="@string/settings"
-        android:src="@drawable/ic_settings_ios" />
-    <ImageButton
-        android:id="@+id/about_button"
-        style="@style/HeaderIconButton"
-        android:contentDescription="@string/about_app"
-        android:src="@drawable/ic_about_ios" />
-</LinearLayout>
+</HorizontalScrollView>

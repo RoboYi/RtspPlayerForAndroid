@@ -6,6 +6,8 @@ import java.io.File
 interface CaptureRepository {
     val directory: File
     fun newFile(prefix: String, extension: String): File
+    /** Publishes a completed staging file to the user-visible DCIM/RoboYiPlayer collection. */
+    fun publish(file: File): File
     fun files(): List<File>
     fun delete(files: Collection<File>): Int
     fun deleteAll(): Pair<Int, Int>
@@ -16,6 +18,7 @@ class CaptureLibrary(private val repository: CaptureRepository) {
 
     fun newSnapshotFile(): File = repository.newFile("snapshot", "jpg")
     fun newRecordingFile(): File = repository.newFile("recording", "mp4")
+    fun publish(file: File): File = repository.publish(file)
 
     /** 录制中的文件可能尚未封装完成，不应展示或删除。 */
     fun visibleFiles(activeRecording: File?): List<File> =

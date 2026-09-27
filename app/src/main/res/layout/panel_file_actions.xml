@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="60dp"
+    android:background="@drawable/card"
+    android:elevation="14dp"
+    android:fillViewport="true"
+    android:saveEnabled="false"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+
+        <TextView
+            android:id="@+id/file_selection_count"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:minWidth="104dp"
+            android:paddingHorizontal="10dp"
+            android:text="@string/file_selected_count_zero"
+            android:textColor="@color/ink"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/select_all_captures"
+            style="@style/FileActionButton"
+            android:drawableTop="@drawable/ic_select_all"
+            android:text="@string/select_all" />
+
+        <Button
+            android:id="@+id/file_open_button"
+            style="@style/FileActionButton"
+            android:drawableTop="@drawable/ic_nav_playback"
+            android:enabled="false"
+            android:text="@string/play" />
+
+        <Button
+            android:id="@+id/share_captures"
+            style="@style/FileActionButton"
+            android:drawableTop="@drawable/ic_share"
+            android:enabled="false"
+            android:text="@string/share_selected" />
+
+        <Button
+            android:id="@+id/delete_captures"
+            style="@style/FileActionButton"
+            android:drawableTop="@drawable/ic_delete"
+            android:enabled="false"
+            android:text="@string/delete_selected"
+            android:textColor="@color/danger" />
+    </LinearLayout>
+</HorizontalScrollView>

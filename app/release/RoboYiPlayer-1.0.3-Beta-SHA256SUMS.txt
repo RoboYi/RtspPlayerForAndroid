@@ -1,0 +1,2 @@
+b599e1df8f0f0efdd0b2a85d927f40c3c260af21f0f69fc193ba7ef14ab9e80e  RoboYiPlayer-1.0.3-Beta-perpetual-internal.apk
+f3bbe65a5d9536a97f633518f61a8ba046f144ac7d7b1f398753d06d54ace65f  RoboYiPlayer-1.0.3-Beta-perpetual-unsigned.apk

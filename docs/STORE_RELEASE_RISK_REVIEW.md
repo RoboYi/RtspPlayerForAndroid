@@ -1,10 +1,10 @@
 # RtspPlayer 上架商业风险评估（2026-09-21）
 
-目标渠道：国内安卓应用商店与 Google Play。评估对象是此仓库的 `com.roboyi.rtspdemo`、重新构建的两份 `V1.0.2-Beta` AAR，以及提供的 SDK 源码目录。此文档记录工程证据与待取得的商业材料，不代替具体销售地区的法律审查。
+目标渠道：国内安卓应用商店与 Google Play。评估对象是此仓库当前的 `com.roboyi.rtspplayer`、三份 `V1.0.4-Beta` AAR，以及提供的 SDK 源码目录。此文档记录工程证据与待取得的商业材料，不代替具体销售地区的法律审查。
 
 ## 发布结论
 
-**当前版本仍不能作为商业版提交。** 新 AAR 的来源、成对 SDK 审计和三份 arm64 原生库的 16 KB ELF 对齐检查已通过，app debug 构建通过。release 构建仍由正式授权、真实运营主体/公开隐私政策 URL 和签名配置门禁拦截；商业 codec 与 LGPL 分发审批、最终包检查和真机验证也尚未完成。
+**当前版本仍不能作为商业版提交。** Core/Transport 的来源、成对 SDK 审计和三份 arm64 原生库的 16 KB ELF 对齐检查已通过，Camera Push AAR 与 app debug 构建通过。Camera Push AAR 尚未纳入正式商业发布审计/SBOM；release 构建仍由正式授权、真实运营主体/公开隐私政策 URL 和签名配置门禁拦截，商业 codec 与 LGPL 分发审批及最终包检查也尚未完成。
 
 | 等级 | 风险与证据 | 发布前动作 |
 | --- | --- | --- |
@@ -19,27 +19,29 @@
 | 中 | 旧版 SDK 日志直接记录过 RTSP 地址、SOAP 正文及原生 GStreamer 错误，可能泄露摄像机凭据。 | app 用户可见错误改为异常类型，原始设备响应只在 debug 包可见；新版 Core/Transport AAR 已从 SDK 源码重建，移除了已识别的敏感日志。上线前仍应在真机检查最终包日志。 |
 | 中 | Google Play 自 2026-08-31 起要求手机新应用/更新面向 API 36；当前工程原为 API 35。[Play 目标 API 政策](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en) | 工程已改为 target/compile 36，升级 AGP 到支持该 API 的版本；使用 API 36 和代表性旧设备做回归。Google Play 新应用使用 AAB。[Android App Bundle 说明](https://developer.android.com/guide/app-bundle) |
 | 中 | 水印导入先前直接复制外部 `content://` 输入，可写入超大或无效文件，耗尽应用存储空间。 | 已限定 10 MB、4096×4096/1600 万像素，先暂存验证，再替换水印文件。 |
+| 阻断 | App 新增 `CAMERA` 权限和设备摄像头 RTSP 推流，可把前置、后置或 Camera2 外接摄像头画面在局域网端口 8554 发布；现有隐私材料尚未按最终产品说明采集触发、接收方、局域网可访问范围及停止行为。 | 更新首次告知、公开隐私政策、国内权限用途与 Google Play Data safety；在目标网络验证端口暴露范围，并决定是否增加认证、绑定地址或显式局域网风险确认。 |
 
 ## 已增加的工程门禁与验证命令
 
 ```powershell
-python tools/check_native_page_size.py app/libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.2-Beta.aar
+python tools/check_native_page_size.py app/libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.4-Beta.aar
 python -m unittest discover -s tools -p 'test_check_native_page_size.py'
 .\gradlew.bat :app:assembleDebug
 .\gradlew.bat :app:bundleRelease
 ```
 
-第一条已通过，成对 SDK 审计与 SBOM 已保存于 [`release-evidence/V1.0.2-Beta`](release-evidence/V1.0.2-Beta/README.md)；debug APK 的 `zipalign -c -P 16 -v 4` 也通过。`bundleRelease` 已验证因缺少正式许可而失败，隐私政策和签名配置门禁分别也会拒绝空配置。政策草案在 `docs/PRIVACY_POLICY_DRAFT.md`，`release-policy.properties.example` 说明配置字段。完成商业材料后，检查最终 bundle 与商店生成 APK，并进行真机 ONVIF 搜索、RTSP/RTSPS 播放、截图、录像、历史迁移/清除、应用重启与无网场景测试。当前没有 Android 设备运行结果。
+第一条已通过，历史成对 SDK 审计与 SBOM 保存在 [`release-evidence/V1.0.2-Beta`](release-evidence/V1.0.2-Beta/README.md)，但必须为最终三份 V1.0.4 制品重新生成；debug APK 的 `zipalign -c -P 16 -v 4` 也通过。`bundleRelease` 已验证因缺少正式许可而失败，隐私政策和签名配置门禁分别也会拒绝空配置。政策草案在 `docs/PRIVACY_POLICY_DRAFT.md`，`release-policy.properties.example` 说明配置字段。2026-09-22 已在连接设备上验证 Camera2 后置预览、H.264 RTSP 启停与 `DESCRIBE 200 OK`；这不替代完整设备矩阵、长稳、UVC 和商店包验证。
 
 ## 发布材料清单
 
 1. 签名 release APK（国内渠道）和签名 AAB（Google Play）；正式包名、应用名、版本号与 SDK 许可完全一致。
 2. 运营主体、客服/隐私联系方式、公开隐私政策 URL、第三方 SDK 清单、Data safety 和国内商店隐私/权限声明；核实首次启动前 SDK 实际行为。
-3. 成对 AAR 的 SHA-256、SBOM、GStreamer 来源及对应源码、LGPL 重链接材料、codec 商业权益与正式 SDK 合同/审批记录。
+3. 三份 AAR 的 SHA-256、SBOM/组件清单、GStreamer 来源及对应源码、LGPL 重链接材料、codec 商业权益与正式 SDK 合同/审批记录。
 4. 代表性机型兼容性记录，重点是 16 KB 内存页、Android 16、局域网发现、无网络、权限被拒绝、播放/录像长时间稳定性。
 5. 按实际大陆分发业务核实 APP 备案和各具体应用商店的主体资质、软著或其他证明要求。
 
 当前 AAR SHA-256：
 
-- Core: `2E6DBDFF2882C83E28114CEE65C8CFF7C496D94AE665CF2105BDE858DE0A3C88`
-- Transport: `E1A62777449C136DDEB6DE2F7322A563DF93409A9EB22C27428F88B926309B4E`
+- Core: `53DF4F2EAEFB65C4E9A9C511838E0E97259AD1181BA4D45C71139882567447E8`
+- Transport: `7624B7A819051BFC27A3E08C3EB923EFC62FF016135B3030BEBA608CFA889660`
+- Camera Push: `FFFCCBA1363140E279E17B70EFB5C07371540D91DF03D1C14A2AE8F6851AEB35`

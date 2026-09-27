@@ -107,7 +107,7 @@ keytool -list -v -storetype PKCS12 -keystore E:\roboyi-keys\roboyi_rtsp_apkstore
 # 成功后检查 app\build\outputs\apk\release\RoboYiPlayer-1.0.2-Beta.apk。
 ```
 
-发布前记录：APK SHA-256、`apksigner verify --print-certs` 的证书指纹、`aapt dump badging` 的包名/版本/应用标签、最终合并 Manifest 的权限、两份 AAR 的 SHA-256 和启动授权测试结果。用干净安装设备测试首次拒绝/同意、隐私政策入口、撤回与删除、ONVIF 搜索、RTSP/RTSPS 播放、录像/截图、水印删除、升级迁移、离线场景和 logcat；同时抓包确认仅向用户选定摄像机及局域网设备发送所声明的数据。当前连接的 Android 12 设备为 4 KB 页，可做基本回归，不能代表 Android 16 或 16 KB 页设备。
+发布前记录：APK SHA-256、`apksigner verify --print-certs` 的证书指纹、`aapt dump badging` 的包名/版本/应用标签、最终合并 Manifest 的权限、三份 AAR 的 SHA-256 和启动授权测试结果。用干净安装设备测试首次拒绝/同意、隐私政策入口、撤回与删除、ONVIF 搜索、RTSP/RTSPS 播放、摄像头推流、录像/截图、水印删除、升级迁移、离线场景和 logcat；同时抓包确认仅向用户选定摄像机及局域网设备发送所声明的数据。当前连接的 Android 12 设备为 4 KB 页，可做基本回归，不能代表 Android 16 或 16 KB 页设备。
 
 ```powershell
 # 本机 Android SDK 37.0.0 build-tools；在 App 目录执行。

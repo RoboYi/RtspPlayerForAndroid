@@ -1,0 +1,21 @@
+RoboYiPlayer USB tablet verification
+Date: 2026-09-22 Asia/Shanghai
+APK: RoboYiPlayer-1.0.3-Beta-perpetual-usb-debug.apk
+SHA-256: 658dfabe7a28124e116c774d970b539814982a49d1781bf53550df86f3b70ac7
+Application ID: com.roboyi.rtspplayer
+Version: 1.0.3-Beta (4)
+License ID: lic-rtspplayer-perpetual-20260922
+Issuer key ID: prod-2026-01
+Perpetual: True
+Codec scope: AVC_HEVC
+Features: PLAYBACK,RECORDING,RTSP_PUSH,SCREENSHOT
+build.gradle contains issued license: true
+ADB install -r: success
+Cold launch: success
+Process running after launch: true
+Startup crash observed: false
+Perpetual license shown in captured tablet screen: true
+License activation toast shown in captured tablet screen: true
+Installed package details: versionCode=4 minSdk=24 targetSdk=36; versionName=1.0.3-Beta
+Device: UDT6R21625000133
+Screenshot: RoboYiPlayer-1.0.3-Beta-perpetual-tablet.png

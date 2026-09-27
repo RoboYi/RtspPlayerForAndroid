@@ -2,4 +2,7 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <external-files-path name="captures" path="captures/" />
     <files-path name="captures_fallback" path="captures/" />
+    <external-path name="public_dcim" path="DCIM/RoboYiPlayer/" />
+    <external-path name="legacy_public_pictures" path="Pictures/RoboYiPlayer/" />
+    <external-path name="legacy_public_movies" path="Movies/RoboYiPlayer/" />
 </paths>

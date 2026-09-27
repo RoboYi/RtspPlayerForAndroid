@@ -1,23 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/page"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical"
-    android:padding="18dp">
-    <include layout="@layout/header" />
-    <LinearLayout
+    android:background="@drawable/ios_background"
+    android:fitsSystemWindows="false">
+
+    <FrameLayout
+        android:id="@+id/player_workspace"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
-        <include layout="@layout/panel_player"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1" />
-        <include layout="@layout/panel_sidebar"
-            android:layout_width="360dp"
+        android:layout_height="match_parent">
+
+        <include
+            layout="@layout/panel_player"
+            android:layout_width="match_parent"
             android:layout_height="match_parent" />
-    </LinearLayout>
-</LinearLayout>
+
+        <include
+            layout="@layout/panel_sidebar"
+            android:layout_width="292dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:layout_marginStart="108dp"
+            android:layout_marginTop="84dp"
+            android:layout_marginBottom="84dp" />
+
+        <include
+            layout="@layout/panel_device_results"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginStart="410dp"
+            android:layout_marginTop="84dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <ImageButton
+            android:id="@+id/sidebar_reveal"
+            style="@style/OverlayHandleButton"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="102dp"
+            android:contentDescription="@string/expand_panel"
+            android:padding="10dp"
+            android:src="@drawable/ic_chevron_right"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/device_results_reveal"
+            style="@style/OverlayHandleButton"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="10dp"
+            android:contentDescription="@string/expand_panel"
+            android:padding="10dp"
+            android:src="@drawable/ic_chevron_up"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <include
+        layout="@layout/panel_files"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="108dp"
+        android:layout_marginTop="84dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp" />
+
+    <include
+        layout="@layout/panel_navigation"
+        android:layout_width="88dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start|center_vertical"
+        android:layout_marginStart="12dp" />
+
+    <include
+        layout="@layout/header"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_gravity="top"
+        android:layout_marginStart="108dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp" />
+
+    <ImageButton
+        android:id="@+id/header_reveal"
+        style="@style/OverlayHandleButton"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="8dp"
+        android:contentDescription="@string/expand_panel"
+        android:padding="10dp"
+        android:src="@drawable/ic_chevron_down"
+        android:visibility="gone" />
+</FrameLayout>

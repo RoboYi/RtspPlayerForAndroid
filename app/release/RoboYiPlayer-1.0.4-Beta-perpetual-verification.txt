@@ -1,0 +1,14 @@
+License ID: lic-rtspplayer-perpetual-v104-20260922
+Perpetual: true
+Package: com.roboyi.rtspplayer
+Version: 1.0.4-Beta (5)
+License embedded: true
+Licensed features: PLAYBACK, RECORDING, RTSP_PUSH, SCREENSHOT
+Codec scope: AVC_HEVC
+Release license verification: passed
+Core AAR compliance audit: passed
+Arm64 16 KB page alignment: passed
+APK signature: Android Debug certificate, APK Signature Scheme v2/v3
+Device install: not run (no ADB device connected)
+APK SHA-256: 303036c3511c7cf2a09bc4a8b1ee100521bb1884287ea58da3bba38ecbc743ce
+Core AAR SHA-256: 314d2f8e1a89e2030c03481d4a3739c1693e0bfa2041b480bd27ac9b4578a82d

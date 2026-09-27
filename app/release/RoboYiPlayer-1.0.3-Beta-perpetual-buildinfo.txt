@@ -1,0 +1,37 @@
+RoboYiPlayer perpetual internal build
+Generated: 2026-09-22 Asia/Shanghai
+
+Signed installable APK: RoboYiPlayer-1.0.3-Beta-perpetual-internal.apk
+SHA-256: b599e1df8f0f0efdd0b2a85d927f40c3c260af21f0f69fc193ba7ef14ab9e80e
+Signing certificate: Android Debug
+Signing certificate SHA-256: 1497fec4e5632233bec8505b6a505863ab96eda671fd350efe500d5f5fe7b8a3
+Signature schemes: APK Signature Scheme v2 and v3
+
+Unsigned APK for later formal signing: RoboYiPlayer-1.0.3-Beta-perpetual-unsigned.apk
+SHA-256: f3bbe65a5d9536a97f633518f61a8ba046f144ac7d7b1f398753d06d54ace65f
+
+Application ID: com.roboyi.rtspplayer
+Application label: RtspPlayer
+Version code: 4
+Version name: 1.0.3-Beta
+Minimum Android API: 24
+Target Android API: 36
+
+License ID: lic-rtspplayer-perpetual-20260922
+License schema: RYL4
+Issuer key ID: prod-2026-01
+Perpetual: True
+Expiry marker: 4102444800
+Codec scope: AVC_HEVC
+Features: PLAYBACK,RECORDING,RTSP_PUSH,SCREENSHOT
+Package binding: com.roboyi.rtspplayer
+License token embedded and signature verified: true
+
+Core AAR: roboyiplayer-core-avc-hevc-release-discovery-V1.0.3-Beta.aar
+Core SHA-256: 385b76c4500301cac7745125eaa9570a2a672683b50f2f93549c430b1faaaefb
+Transport AAR: roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.3-Beta.aar
+Transport SHA-256: 7624b7a819051bfc27a3e08c3eb923efc62ff016135b3030beba608cfa889660
+16 KB arm64 ELF alignment: verified (3 libraries)
+Required app/GStreamer legal assets: verified (6)
+
+The installable APK uses the Android debug certificate. It is suitable for internal installation and functional verification. It cannot update an APK signed with a different certificate and is not the store submission artifact.

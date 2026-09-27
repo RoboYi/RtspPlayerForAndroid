@@ -1,8 +1,8 @@
 # RoboYi RTSP SDK · Android 集成示例
 
-本项目是 **RoboYi RTSP SDK 的独立 Android demo**。开发者可以先运行 demo 体验网络摄像机搜索、RTSP 播放、截图和录像，再按照下方示例把 SDK 接入自己的应用。播放器与设备发现的实现位于 SDK AAR 中；本项目负责界面、交互和调用示例。
+本项目是 **RoboYi RTSP SDK 的独立 Android demo**。开发者可以先运行 demo 体验网络摄像机搜索、RTSP 播放、截图、录像和设备摄像头 RTSP 推流，再按照下方示例把 SDK 接入自己的应用。播放器、设备发现和 Camera2 推流的实现位于 SDK AAR 中；本项目负责界面、交互和调用示例。
 
-商业上架风险和当前阻断项见 [上架评估](docs/STORE_RELEASE_RISK_REVIEW.md)。更新 SDK 时须同时重建并重命名两个 AAR 文件中的版本号，并同步修改 `app/build.gradle` 的 `sdkArtifactVersion`、app 版本及本文的文件名/版本描述；不要仅更改 Gradle 中的引用而保留旧制品。
+商业上架风险和当前阻断项见 [上架评估](docs/STORE_RELEASE_RISK_REVIEW.md)。更新 SDK 时须同时重建并重命名 Core、Transport 和 Camera Push 三个 AAR 文件中的版本号，并同步修改 `app/build.gradle` 的 `sdkArtifactVersion`、app 版本及本文的文件名/版本描述；不要仅更改 Gradle 中的引用而保留旧制品。
 
 制作 release 包前，将 `release-policy.properties.example` 复制为 `release-policy.properties`，填写真实上架主体及已发布的 HTTPS 隐私政策地址。构建会校验这两项并在 app 中提供完整政策入口；隐私政策草案见 [PRIVACY_POLICY_DRAFT.md](docs/PRIVACY_POLICY_DRAFT.md)。
 
@@ -20,10 +20,12 @@
 | 查看设备信息 | 展示型号、固件、序列号、服务地址、Scopes 和可用码流；原始响应仅在 debug 包展示 |
 | 获取 RTSP 地址 | 区分设备通过 ONVIF 返回的地址与根据常见路径生成的**待验证候选地址** |
 | 播放视频 | 播放 RTSP，切换解码模式和画面比例，点击视频上的按钮进入横屏全屏 |
-| 保存画面 | 截图、MP4 录像、录像暂停与继续，以及文字、图片和全画幅 Bitmap 绘图水印 |
+| 裁剪画面 | 在原始视频帧上拖框选择显示区域，并同步应用到预览、录像和截图 |
+| 摄像头推流 | 将前置、后置或由 Camera2 暴露的外接 UVC 摄像头编码为本机 RTSP 服务 |
+| 保存画面 | 截图、带 RTSP/麦克风声音的 MP4 录像、录像暂停与继续，以及文字、图片和全画幅 Bitmap 绘图水印 |
 | 管理文件 | 查看、打开和删除应用保存的截图与录像 |
 
-SDK 支持 H.264/H.265 RTSP 拉流，使用 Android MediaCodec 解码。本 demo 展示的是单路播放器接入；SDK 的其他模块和功能以交付的 SDK 包及授权范围为准。
+SDK 支持 H.264/H.265 RTSP 拉流与 Camera2 摄像头推流，使用 Android MediaCodec 解码/编码。点击播放页工具栏中的“摄像头推流”可进入推流示例。SDK 的其他模块和功能以交付的 SDK 包及授权范围为准。
 
 ## 运行 demo
 
@@ -52,21 +54,23 @@ SDK 支持 H.264/H.265 RTSP 拉流，使用 Android MediaCodec 解码。本 demo
 
 ### 1. 添加 SDK AAR
 
-本 demo 使用两个本地 AAR，当前 SDK 版本均为 `V1.0.2-Beta`：
+本 demo 使用三个本地 AAR，当前 SDK 版本均为 `V1.0.4-Beta`：
 
 ```text
-app/libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.2-Beta.aar
-app/libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.2-Beta.aar
+app/libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.4-Beta.aar
+app/libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.4-Beta.aar
+app/libs/roboyiplayer-camera-push-release-V1.0.4-Beta.aar
 ```
 
-Core AAR 提供播放器、录制、截图和设备发现 API；Transport AAR 提供 RTSP 传输运行时及原生库。**两个 AAR 的 codec scope 必须一致**，不能混用 `AVC` 与 `AVC_HEVC`。拿到正式交付包后，以交付的文件名和授权范围替换示例文件。
+Core AAR 提供播放器、录制、截图、UVC Surface 适配接口和设备发现 API；Transport AAR 提供 RTSP 传输运行时及原生库；Camera Push AAR 提供 Camera2 采集、预览和编码。**Core 与 Transport 的 codec scope 必须一致**，不能混用 `AVC` 与 `AVC_HEVC`。拿到正式交付包后，以交付的文件名和授权范围替换示例文件。
 
 在应用模块的 `build.gradle` 中添加依赖；以下名称对应本 demo 当前文件：
 
 ```gradle
 dependencies {
-    implementation files('libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.2-Beta.aar')
-    implementation files('libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.2-Beta.aar')
+    implementation files('libs/roboyiplayer-core-avc-hevc-release-discovery-V1.0.4-Beta.aar')
+    implementation files('libs/roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.4-Beta.aar')
+    implementation files('libs/roboyiplayer-camera-push-release-V1.0.4-Beta.aar')
 }
 ```
 
@@ -77,6 +81,10 @@ dependencies {
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+<uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
 <application android:usesCleartextTraffic="true">
     <!-- 保留应用原有的 Activity、Provider 等声明 -->
@@ -95,6 +103,12 @@ val info = RoboYiPlayer.initialize(applicationContext, licenseKey)
 ```
 
 `licenseKey` 由授权方提供。demo 的 `BuildConfig.ROBOYI_LICENSE` 仅适用于示例应用名称、包名和功能范围，复制到另一个应用不会自动获得授权。
+
+播放器和摄像头推流建议共用一枚 RYL4 许可证，通过 `features` 中的 `PLAYBACK`、`RTSP_PUSH` 等能力位分级。Camera Push 保持独立 AAR，客户可以不打包不需要的采集代码，但不需要管理第二枚许可证；当前推流 AAR 会在启动前读取 Core 的授权会话并校验 `RTSP_PUSH` 与 codec scope。
+
+### Camera2 / UVC 推流边界
+
+Demo 的 [CameraPushActivity.kt](app/src/main/java/com/roboyi/rtspdemo/CameraPushActivity.kt) 支持前置、后置和 `LENS_FACING_EXTERNAL` 摄像头。部分 Android 设备会把 USB UVC 摄像头暴露给 Camera2，此时可直接选择“外接 UVC（Camera2）”推流。若系统只把设备暴露在 USB Host 层，SDK 能枚举设备并提供 `UvcRtspPushController` / `UvcSurfaceSource` 接口，但仍需集成选定的 UVC 采集库，把视频帧渲染到 SDK 给出的 `Surface`；本 demo 不内置第三方 UVC 驱动。
 
 ### 3. 嵌入播放器并播放
 
@@ -133,6 +147,11 @@ player.stop()
 连接并开始播放后，可调用：
 
 ```kotlin
+import com.roboyi.rtsp.RecordingAudioConfig
+import com.roboyi.rtsp.RecordingAudioFrame
+import com.roboyi.rtsp.RecordingAudioSource
+import android.media.AudioFormat
+import android.media.MediaFormat
 import java.io.File
 
 val dir = checkNotNull(getExternalFilesDir(null))
@@ -141,14 +160,31 @@ player.captureSurfaceScreenshot(File(dir, "snapshot.jpg")) { ok, error ->
 }
 
 val recording = File(dir, "recording.mp4")
-val started = player.startRecording(recording)
+val started = player.startRecording(
+    file = recording,
+    // RTSP 音轨可改用 RecordingAudioConfig.rtsp()。
+    audio = RecordingAudioConfig(source = RecordingAudioSource.External)
+)
+// External 模式下，由 AudioRecord 持续送入实时麦克风 PCM 数据：
+player.queueExternalRecordingAudio(
+    RecordingAudioFrame(
+        data = pcm16Bytes,
+        presentationTimeUs = audioTimestampUs,
+        mimeType = MediaFormat.MIMETYPE_AUDIO_RAW,
+        sampleRate = 48_000,
+        channelCount = 1,
+        pcmEncoding = AudioFormat.ENCODING_PCM_16BIT
+    )
+)
 // 录像开始后，分别在“暂停”“继续”“停止”按钮的点击事件中调用：
 // player.pauseRecording()
 // player.resumeRecording()
 // player.stopAllRecordings()
 ```
 
-demo 的“暂停录像”按钮仅在录像过程中显示。`captureSurfaceScreenshot(...)` 依赖 Android 8.0（API 26）及以上的 PixelCopy；低版本设备需要采用其他截图方案。
+demo 的“声音：RTSP”按钮可在“不录声音 / RTSP 音轨 / 设备麦克风”之间选择。选择麦克风后，开始录像时请求 `RECORD_AUDIO` 权限，通过 `AudioRecord` 实时采集单声道 PCM16，并调用 `queueExternalRecordingAudio(...)` 写入录像；暂停和停止录像时会同步暂停或结束采集。完整实现见 [`MicrophoneRecordingAudioCapture.kt`](app/src/main/java/com/roboyi/rtspdemo/MicrophoneRecordingAudioCapture.kt)。RTSP 没有可用音轨时仍会保存纯视频。当前带声音录像限单文件 MP4。demo 的“暂停录像”按钮仅在录像过程中显示。`captureSurfaceScreenshot(...)` 依赖 Android 8.0（API 26）及以上的 PixelCopy；低版本设备需要采用其他截图方案。
+
+播放后点击“画面裁剪”，demo 会先取得一帧完整原始画面；在弹窗中拖动矩形并点击“应用裁剪”后，预览立即切换到所选区域。随后保存的普通/带水印截图和新开始的录像都会使用同一区域。“显示全画面”可清除裁剪。对应 SDK API 为 `RoboYiPlayerFragment.setVideoCrop(VideoCropRegion(...))`；坐标以原图宽高的 `0f..1f` 比例表示，原点在左上角。
 
 ### 5. 录像水印：在任意位置叠加文字与图形
 
@@ -263,6 +299,8 @@ CameraDiscovery.search(applicationContext, credentials) { devices ->
 
 设备搜索和网络请求的回调需要按 Android 线程规则处理，更新 View 时切回主线程。demo 的调用适配见 [OnvifDiscovery.kt](app/src/main/java/com/roboyi/rtspdemo/OnvifDiscovery.kt)。当设备响应超时、凭据错误或未提供 Media 服务时，详情可能只有待验证的常见 RTSP 路径。
 
+对于 ONVIF 搜索结果，设备卡片会直接显示“设备详情”和“ONVIF 控制”两个按钮；详情弹窗中也保留控制入口。控制页使用 SDK 的 `OnvifController` 读取设备实际声明的能力：码流页可按 Profile 查看编码并设置分辨率、画质、帧率、码率、编码间隔和 GOP；图像页可设置亮度、饱和度、对比度与锐度；PTZ 页支持按住方向/变焦、松手停止，以及原点设置和归位。界面只显示设备返回的可用部分，参数写入仍受摄像机型号、固件和账号权限限制。
+
 ## 授权与购买
 
 本项目中的永久演示许可证只匹配 `RtspPlayer` / `com.roboyi.rtspdemo`，适用于学习本 demo 的接入方式。将 SDK 用于自己的应用、修改包名或应用名称、增加授权功能时，需要取得与目标应用匹配的许可证及对应 SDK 交付包。
@@ -277,10 +315,10 @@ CameraDiscovery.search(applicationContext, credentials) { devices ->
 
 | 项目 | 发布前要确认 |
 | --- | --- |
-| SDK 授权 | 取得适用于目标应用的正式交付包和 RYL4 许可证，核对默认应用名称、`applicationId`、期限、功能范围与 `AVC` / `AVC_HEVC` 范围；Core 与 Transport AAR 必须采用相同范围。demo 授权码不能移用到客户应用。 |
+| SDK 授权 | 取得适用于目标应用的正式交付包和 RYL4 许可证，核对默认应用名称、`applicationId`、期限、`PLAYBACK` / `RTSP_PUSH` 等功能范围与 `AVC` / `AVC_HEVC` 范围；Core 与 Transport AAR 必须采用相同范围。demo 授权码不能移用到客户应用。 |
 | 第三方组件 | Transport AAR 包含 GStreamer 及其他第三方组件。随产品提供适用的许可文本、版权声明、组件清单、对应源码获取方式，以及替换或重新链接说明；修改组件或打包方式后重新核对。具体材料见交付包中的 `THIRD_PARTY_NOTICES.md`、`GSTREAMER-LGPL-2.1-or-later.txt` 和 `LGPL_RELINKING.md`。 |
 | 编解码权益 | Android `MediaCodec` 的使用不自动解决 H.264/H.265 在目标地区、产品类型及销售渠道的商业使用问题；按实际 codec 范围完成权利审查。 |
-| 发布记录 | 保存合同及许可证记录、交付版本、两个 AAR 的 SHA-256、组件清单或 SBOM、开源义务履行材料及发布审批记录。更换制品、依赖或销售场景时重新核对。 |
+| 发布记录 | 保存合同及许可证记录、交付版本、三个 AAR 的 SHA-256、组件清单或 SBOM、开源义务履行材料及发布审批记录。更换制品、依赖或销售场景时重新核对。 |
 | 设备和录像数据 | 只接入获准访问的摄像机；保护设备账号、RTSP URL 中的凭据、截图和录像，并按产品部署地的要求确定访问、留存、删除与告知方式。 |
 
 SDK 供应方的具体发布流程见 SDK 工程的 `docs/compliance/COMPLIANCE_RELEASE_CHECKLIST.md`。关于第三方库许可，可参阅 [GStreamer 官方许可说明](https://gstreamer.freedesktop.org/documentation/frequently-asked-questions/licensing.html)与 [GNU LGPL 2.1 许可证](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)。具体商业范围和义务以合同、实际交付制品及对应审查结论为准；商业授权请联系 [RoboYi@126.com](mailto:RoboYi@126.com)。
@@ -294,5 +332,7 @@ SDK 供应方的具体发布流程见 SDK 工程的 `docs/compliance/COMPLIANCE_
 | 只有“候选地址” | 设备未成功返回 `GetStreamUri`；检查 ONVIF 服务、Media 服务和网络响应，再验证候选 RTSP 路径 |
 | RTSP 无法播放 | 检查 URL、账号密码、端口、网络连通性及摄像机使用的 H.264/H.265 码流 |
 | 录像或截图不可用 | 确认视频已经播放、许可证包含对应功能，并查看页面给出的错误信息 |
+| 摄像头推流不可用 | 确认已授予 CAMERA 权限、许可证包含 `RTSP_PUSH`、端口 8554 未占用，且设备存在所选编码器 |
+| USB UVC 只显示检测提示 | 设备未通过 Camera2 暴露；需实现 `UvcSurfaceSource` 并集成经过许可审查的 UVC 采集库 |
 
 新生成的截图和录像保存在应用内部 `files/captures`，通过应用内“本地文件”查看或删除；升级前已保存在 `Android/data/com.roboyi.rtspdemo/files/captures` 的旧文件仍会显示，直到用户删除。若 RTSP URL 内含账号密码，分享日志或截图前请注意遮盖凭据。

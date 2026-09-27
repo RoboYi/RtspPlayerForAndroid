@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/navigation_rail"
+    android:layout_width="88dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/card"
+    android:elevation="16dp"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <Button android:id="@+id/history_tab" style="@style/NavigationRailButton" android:drawableTop="@drawable/ic_nav_playback" android:text="@string/nav_playback" />
+    <Button android:id="@+id/captures_tab" style="@style/NavigationRailButton" android:drawableTop="@drawable/ic_nav_files" android:text="@string/nav_files" />
+    <Button android:id="@+id/camera_push_button" style="@style/NavigationRailButton" android:drawableTop="@drawable/ic_nav_push" android:text="@string/nav_push" />
+</LinearLayout>

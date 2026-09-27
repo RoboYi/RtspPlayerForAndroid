@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/card"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="22dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawableStart="@drawable/ic_settings_ios"
+            android:drawablePadding="10dp"
+            android:text="@string/player_settings_title"
+            android:textColor="@color/ink"
+            android:textSize="23sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="@string/settings_subtitle"
+            android:textColor="@color/muted"
+            android:textSize="13sp" />
+
+        <TextView style="@style/SettingsSectionLabel" android:text="@string/settings_decoder_section" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/settings_decoder_auto" style="@style/SettingsActionButton" android:layout_width="0dp" android:layout_weight="1" android:drawableStart="@drawable/ic_decoder" android:text="@string/decoder_auto" />
+            <Button android:id="@+id/settings_decoder_hardware" style="@style/SettingsActionButton" android:layout_width="0dp" android:layout_marginStart="8dp" android:layout_weight="1" android:drawableStart="@drawable/ic_decoder" android:text="@string/decoder_hardware" />
+        </LinearLayout>
+
+        <TextView style="@style/SettingsSectionLabel" android:text="@string/settings_privacy_section" />
+        <Button android:id="@+id/settings_privacy_action" style="@style/SettingsActionButton" android:drawableStart="@drawable/ic_privacy" android:text="@string/privacy_notice_title" />
+        <Button android:id="@+id/settings_delete_action" style="@style/SettingsActionButton" android:layout_marginTop="8dp" android:drawableStart="@drawable/ic_delete" android:text="@string/privacy_delete_local_data" android:textColor="@color/danger" />
+
+        <TextView style="@style/SettingsSectionLabel" android:text="@string/settings_application_section" />
+        <Button android:id="@+id/settings_licenses_action" style="@style/SettingsActionButton" android:drawableStart="@drawable/ic_code" android:text="@string/open_source_notices" />
+        <Button android:id="@+id/settings_about_action" style="@style/SettingsActionButton" android:layout_marginTop="8dp" android:drawableStart="@drawable/ic_info" android:text="@string/about_app" />
+
+        <Button
+            android:id="@+id/settings_close_action"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/primary_button"
+            android:text="@string/close"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white" />
+    </LinearLayout>
+</ScrollView>

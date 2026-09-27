@@ -33,21 +33,22 @@ def signingKeyPassword = providers.environmentVariable('ROBOYI_RELEASE_KEY_PASSW
 def hasReleaseSigning = signingStoreFile && signingKeyAlias &&
     signingStorePassword && signingKeyPassword
 // Keep this identical to the version suffix of both rebuilt SDK AAR files.
-def sdkArtifactVersion = 'V1.0.2-Beta'
+def sdkArtifactVersion = 'V1.0.4-Beta'
 def sdkCoreAar = file("libs/roboyiplayer-core-avc-hevc-release-discovery-${sdkArtifactVersion}.aar")
 def sdkTransportAar = file("libs/roboyiplayer-transport-gstreamer-avc-hevc-release-${sdkArtifactVersion}.aar")
+def sdkCameraPushAar = file("libs/roboyiplayer-camera-push-release-${sdkArtifactVersion}.aar")
 android {
     namespace 'com.roboyi.rtspdemo'
     compileSdk 36
 
     defaultConfig {
-        applicationId 'com.roboyi.rtspdemo'
+        applicationId 'com.roboyi.rtspplayer'
         minSdk 24
         targetSdk 36
-        versionCode 3
-        versionName '1.0.2-Beta'
+        versionCode 5
+        versionName '1.0.4-Beta'
         ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
-        buildConfigField 'String', 'ROBOYI_LICENSE', '"RYL4.prod-2026-01.eyJzY2hlbWFWZXJzaW9uIjo0LCJsaWNlbnNlSWQiOiJkZW1vLXJ0c3BwbGF5ZXItcGVycGV0dWFsLTIwMjYwOTE5IiwiYXBwbGljYXRpb25MYWJlbCI6IlJ0c3BQbGF5ZXIiLCJwYWNrYWdlTmFtZXMiOlsiY29tLnJvYm95aS5ydHNwZGVtbyJdLCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAsImNvZGVjU2NvcGUiOiJBVkNfSEVWQyIsImZlYXR1cmVzIjpbIlBMQVlCQUNLIiwiUkVDT1JESU5HIiwiUlRTUF9QVVNIIiwiU0NSRUVOU0hPVCJdfQ.MEYCIQDtlvrIyQa52jFiuU2GbwrzMjur7okMI2NR-cdkzJeDSwIhAIcNScsxBUmhiQ6mPOMxIjuJTrcIN6X9rQzp3p9co2sZ"'
+        buildConfigField 'String', 'ROBOYI_LICENSE', '"RYL4.prod-2026-01.eyJzY2hlbWFWZXJzaW9uIjo0LCJsaWNlbnNlSWQiOiJsaWMtcnRzcHBsYXllci1wZXJwZXR1YWwtdjEwNC0yMDI2MDkyMiIsImFwcGxpY2F0aW9uTGFiZWwiOiJSdHNwUGxheWVyIiwicGFja2FnZU5hbWVzIjpbImNvbS5yb2JveWkucnRzcHBsYXllciJdLCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAsImNvZGVjU2NvcGUiOiJBVkNfSEVWQyIsImZlYXR1cmVzIjpbIlBMQVlCQUNLIiwiUkVDT1JESU5HIiwiUlRTUF9QVVNIIiwiU0NSRUVOU0hPVCJdfQ.MEUCIQCNE9hLh764cVpc5HGSzu5kNC1wLr4t8cwcyqndZqKRnwIgf38dmw97YmPeUIWfrPQeVEObrlmA7izDGrlS-nL1JiM"'
         buildConfigField 'String', 'PRIVACY_OPERATOR', groovy.json.JsonOutput.toJson(privacyOperator)
         buildConfigField 'String', 'PRIVACY_POLICY_URL', groovy.json.JsonOutput.toJson(privacyPolicyUrl)
         buildConfigField 'String', 'PRIVACY_CONTACT_EMAIL', groovy.json.JsonOutput.toJson(privacyContactEmail)
@@ -116,6 +117,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-livedata:2.6.2'
     implementation files(sdkCoreAar)
     implementation files(sdkTransportAar)
+    implementation files(sdkCameraPushAar)
 }
 
 tasks.register('verifyReleaseNativePageSize', Exec) {
@@ -174,17 +176,17 @@ tasks.register('verifyReleaseLicense') {
                 }
                 def nowSeconds = System.currentTimeMillis().intdiv(1000)
                 valid = !payload.licenseId?.toString()?.startsWith('demo-') &&
-                    payload.packageNames?.contains('com.roboyi.rtspdemo') &&
+                    payload.packageNames?.contains('com.roboyi.rtspplayer') &&
                     payload.applicationLabel == 'RtspPlayer' &&
                     payload.codecScope == 'AVC_HEVC' &&
-                    payload.features?.containsAll(['PLAYBACK', 'RECORDING', 'SCREENSHOT']) &&
+                    payload.features?.containsAll(['PLAYBACK', 'RECORDING', 'RTSP_PUSH', 'SCREENSHOT']) &&
                     payload.expiresAt instanceof Number &&
                     (payload.expiresAt >= 4102444800L || payload.expiresAt > nowSeconds) &&
                     signed && issuerInSdk
             }
         } catch (Exception ignored) { }
         if (!valid) throw new GradleException(
-            'Set a signed non-demo RYL4 license whose issuer is embedded in the Core AAR, for com.roboyi.rtspdemo / RtspPlayer / AVC_HEVC in release-license.properties')
+            'Set a signed non-demo RYL4 license whose issuer is embedded in the Core AAR, for com.roboyi.rtspplayer / RtspPlayer / AVC_HEVC with PLAYBACK, RECORDING, RTSP_PUSH and SCREENSHOT in release-license.properties')
     }
 }
 tasks.register('verifyReleaseSigning') {

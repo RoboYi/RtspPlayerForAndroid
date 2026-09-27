@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/ios_background"
+    android:fitsSystemWindows="true">
+
+    <TextureView
+        android:id="@+id/camera_push_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <TextView
+        android:id="@+id/camera_push_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="76dp"
+        android:background="@drawable/video_overlay_button"
+        android:elevation="16dp"
+        android:maxWidth="320dp"
+        android:padding="10dp"
+        android:text="@string/camera_push_waiting"
+        android:textColor="@android:color/white"
+        android:textSize="12sp" />
+
+    <ScrollView
+        android:id="@+id/push_config_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="430dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="86dp"
+        android:fillViewport="true"
+        android:scrollbars="none">
+        <include layout="@layout/panel_camera_push_config" />
+    </ScrollView>
+
+    <ImageButton android:id="@+id/push_config_reveal" style="@style/OverlayHandleButton" android:layout_gravity="end|center_vertical" android:contentDescription="@string/expand_panel" android:padding="10dp" android:src="@drawable/ic_chevron_left" android:visibility="gone" />
+
+    <HorizontalScrollView
+        android:id="@+id/push_actions_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="64dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/card"
+        android:elevation="18dp"
+        android:paddingHorizontal="8dp"
+        android:scrollbars="none">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <Button android:id="@+id/camera_push_toggle" style="@style/ControlButton" android:background="@drawable/primary_button" android:drawableTop="@drawable/ic_record" android:text="@string/camera_push_start" android:textColor="@android:color/white" />
+            <Button android:id="@+id/camera_push_copy" style="@style/ControlButton" android:drawableTop="@drawable/ic_link" android:enabled="false" android:text="@string/camera_push_copy_url" />
+            <Button android:id="@+id/camera_push_test" style="@style/ControlButton" android:drawableTop="@drawable/ic_nav_playback" android:enabled="false" android:text="@string/push_test_play" />
+            <Button android:id="@+id/camera_push_torch" style="@style/ControlButton" android:drawableTop="@drawable/ic_flashlight" android:enabled="false" android:text="@string/camera_push_torch" />
+            <Button android:id="@+id/camera_push_osd_settings" style="@style/ControlButton" android:drawableTop="@drawable/ic_watermark" android:text="@string/push_osd_manage" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <include layout="@layout/panel_navigation" android:layout_width="88dp" android:layout_height="wrap_content" android:layout_gravity="start|center_vertical" android:layout_marginStart="8dp" />
+    <include layout="@layout/header" android:layout_width="match_parent" android:layout_height="58dp" android:layout_gravity="top" android:layout_margin="8dp" />
+    <ImageButton android:id="@+id/header_reveal" style="@style/OverlayHandleButton" android:layout_gravity="top|center_horizontal" android:layout_marginTop="8dp" android:contentDescription="@string/expand_panel" android:padding="10dp" android:src="@drawable/ic_chevron_down" android:visibility="gone" />
+</FrameLayout>

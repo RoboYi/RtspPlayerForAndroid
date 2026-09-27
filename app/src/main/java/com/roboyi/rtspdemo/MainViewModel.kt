@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.roboyi.rtsp.DecoderMode
 import com.roboyi.rtsp.CameraDevice
+import com.roboyi.rtsp.DigitalZoom
+import com.roboyi.rtsp.VideoCropRegion
 import com.roboyi.rtspdemo.data.AppCaptureRepository
 import com.roboyi.rtspdemo.data.SharedPreferencesConnectionHistory
 import com.roboyi.rtspdemo.data.SecureConnectionStore
@@ -19,7 +21,6 @@ import com.roboyi.rtspdemo.domain.WatermarkSettings
 import java.io.File
 
 internal enum class PlaybackPhase { STOPPED, CONNECTING, PLAYING }
-internal enum class SidebarTab { HISTORY, ONVIF, CAPTURES }
 
 internal data class LocalDataDeletionResult(
     val capturesRequested: Int,
@@ -38,12 +39,13 @@ internal data class MainUiState(
     val recordingPaused: Boolean = false,
     val recordingDurationMs: Long = 0L,
     val fillMode: Boolean = false,
+    val digitalZoomFactor: Float = DigitalZoom.MIN_FACTOR,
+    val videoCropRegion: VideoCropRegion = VideoCropRegion.FULL_FRAME,
     val decoderMode: DecoderMode = DecoderMode.AUTO,
     val watermark: WatermarkSettings = WatermarkSettings(),
     val history: List<ConnectionEntry> = emptyList(),
     val captures: List<File> = emptyList(),
-    val selectedCaptures: Set<String> = emptySet(),
-    val tab: SidebarTab = SidebarTab.HISTORY,
+    val section: MainSection = MainSection.PLAYBACK,
     val onvifHint: String = "",
     val onvifSearching: Boolean = false,
     val onvifSearchCompleted: Boolean = false,
@@ -155,10 +157,47 @@ internal class MainViewModel(
         return active
     }
 
+    fun onSelectedPreviewChanged(
+        playback: PlaybackPhase,
+        streamInfo: String,
+        fillMode: Boolean,
+        digitalZoomFactor: Float,
+        videoCropRegion: VideoCropRegion
+    ) = update {
+        it.copy(
+            playback = playback,
+            streamInfo = streamInfo,
+            fillMode = fillMode,
+            digitalZoomFactor = digitalZoomFactor,
+            videoCropRegion = videoCropRegion
+        )
+    }
+
     fun toggleFillMode(): Boolean {
         val next = !state.fillMode
         update { it.copy(fillMode = next) }
         return next
+    }
+
+    fun setDigitalZoom(factor: Float): Float {
+        val normalized = DigitalZoom.normalize(factor)
+        update {
+            it.copy(
+                digitalZoomFactor = normalized,
+                videoCropRegion = VideoCropRegion.centeredForZoom(normalized)
+            )
+        }
+        return normalized
+    }
+
+    fun setVideoCrop(region: VideoCropRegion): VideoCropRegion {
+        update {
+            it.copy(
+                videoCropRegion = region,
+                digitalZoomFactor = region.equivalentZoomFactor
+            )
+        }
+        return region
     }
 
     fun setDecoderMode(mode: DecoderMode) = update { it.copy(decoderMode = mode) }
@@ -177,27 +216,11 @@ internal class MainViewModel(
 
     fun newSnapshotFile(): File = captureLibrary.newSnapshotFile()
     fun newRecordingFile(): File = captureLibrary.newRecordingFile()
+    fun publishCapture(file: File): File = captureLibrary.publish(file)
 
     fun refreshCaptures() {
         val files = captureLibrary.visibleFiles(state.recordingFile)
-        val paths = files.mapTo(mutableSetOf()) { it.absolutePath }
-        update { it.copy(captures = files, selectedCaptures = it.selectedCaptures.intersect(paths)) }
-    }
-
-    fun selectCapture(file: File, selected: Boolean) {
-        update { current ->
-            current.copy(selectedCaptures = if (selected) current.selectedCaptures + file.absolutePath
-                else current.selectedCaptures - file.absolutePath)
-        }
-    }
-
-    fun selectedCaptureFiles(): List<File> = state.captures.filter { it.absolutePath in state.selectedCaptures }
-
-    fun deleteSelectedCaptures(): Int {
-        val deleted = captureLibrary.delete(selectedCaptureFiles())
-        update { it.copy(selectedCaptures = emptySet()) }
-        refreshCaptures()
-        return deleted
+        update { it.copy(captures = files) }
     }
 
     fun clearHistory() {
@@ -224,7 +247,20 @@ internal class MainViewModel(
         return LocalDataDeletionResult(captureCount, deleted, imageDeleted)
     }
 
-    fun showTab(tab: SidebarTab) = update { it.copy(tab = tab) }
+    fun showSection(section: MainSection) = update { it.copy(section = section) }
+
+    /** 文件页只删除当前预览项，避免把单文件操作与多选状态耦合。 */
+    fun deleteCapture(file: File): Boolean {
+        val deleted = captureLibrary.delete(listOf(file)) == 1
+        refreshCaptures()
+        return deleted
+    }
+
+    fun deleteCaptures(files: Collection<File>): Int {
+        val deleted = captureLibrary.delete(files)
+        refreshCaptures()
+        return deleted
+    }
 
     fun onOnvifSearchStarted() = update { it.copy(
         onvifSearching = true,

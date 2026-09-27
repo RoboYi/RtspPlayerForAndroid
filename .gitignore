@@ -10,6 +10,7 @@ release-license.properties
 *.keystore
 *.p12
 *.apk
+*.idsig
 *.iml
 __pycache__/
 *.pyc

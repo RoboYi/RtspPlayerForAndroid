@@ -1,4 +1,4 @@
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="@color/blue" />
-    <corners android:radius="12dp" />
-</shape>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false" android:drawable="@drawable/primary_button_disabled" />
+    <item android:drawable="@drawable/primary_button_enabled" />
+</selector>

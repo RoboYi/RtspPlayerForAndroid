@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="50dp"
+    android:background="@drawable/card"
+    android:elevation="12dp"
+    android:fillViewport="true"
+    android:saveEnabled="false"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="7dp">
+
+        <Button
+            android:id="@+id/capture_filter_all"
+            style="@style/FileChipButton"
+            android:drawableStart="@drawable/ic_file_grid"
+            android:text="@string/file_filter_all" />
+
+        <Button
+            android:id="@+id/capture_filter_video"
+            style="@style/FileChipButton"
+            android:drawableStart="@drawable/ic_file_video"
+            android:text="@string/file_filter_video" />
+
+        <Button
+            android:id="@+id/capture_filter_image"
+            style="@style/FileChipButton"
+            android:drawableStart="@drawable/ic_file_image"
+            android:text="@string/file_filter_image" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/capture_sort_button"
+            style="@style/FileChipButton"
+            android:drawableStart="@drawable/ic_sort"
+            android:text="@string/file_sort_newest" />
+
+        <Button
+            android:id="@+id/refresh_captures"
+            style="@style/FileChipButton"
+            android:drawableStart="@drawable/ic_refresh"
+            android:text="@string/refresh_list" />
+    </LinearLayout>
+</HorizontalScrollView>
