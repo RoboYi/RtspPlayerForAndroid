@@ -7,6 +7,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.os.Bundle
 import android.os.Handler
@@ -44,6 +45,7 @@ import com.roboyi.rtsp.RoboYiPlayer
 import com.roboyi.rtsp.UvcCameraEnumerator
 import java.text.DateFormat
 import java.util.Date
+import kotlin.math.max
 
 /**
  * 推流工作台只负责参数编辑和预览；正式推流由 [CameraPushService] 独占。
@@ -134,7 +136,9 @@ class CameraPushActivity : AppCompatActivity() {
                 restartPreview()
             }
 
-            override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) = Unit
+            override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) {
+                applyPreviewTransform()
+            }
 
             override fun onSurfaceTextureDestroyed(texture: SurfaceTexture): Boolean {
                 previewController.stop()
@@ -244,6 +248,9 @@ class CameraPushActivity : AppCompatActivity() {
     }
 
     private fun setupTopNavigation() {
+        findViewById<Button>(R.id.projects_tab).setOnClickListener {
+            AppNavigation.openMain(this, MainSection.PLAYBACK, dialog = "projects")
+        }
         findViewById<Button>(R.id.history_tab).setOnClickListener {
             AppNavigation.openMain(this, MainSection.PLAYBACK)
         }
@@ -320,6 +327,7 @@ class CameraPushActivity : AppCompatActivity() {
         val config = buildConfig() ?: return
         runCatching { previewController.start(config, surface) }
             .onSuccess {
+                applyPreviewTransform()
                 status.text = getString(
                     R.string.camera_push_previewing,
                     facingLabel(config.facing),
@@ -735,6 +743,66 @@ class CameraPushActivity : AppCompatActivity() {
     private fun applyPreviewBufferSize() {
         val size = selectedCamera()?.supportedSizes?.getOrNull(sizeSpinner.selectedItemPosition) ?: return
         preview.surfaceTexture?.setDefaultBufferSize(size.width, size.height)
+        if (preview.width > 0 && preview.height > 0) {
+            applyPreviewTransform()
+        } else {
+            preview.post { applyPreviewTransform() }
+        }
+    }
+
+    /**
+     * SurfaceTexture receives the camera sensor's native orientation. Rotate it into the current
+     * display orientation and use a center-crop transform so the preview fills the screen without
+     * stretching. This affects only the local TextureView; encoded RTSP frames remain unchanged.
+     */
+    private fun applyPreviewTransform() {
+        val camera = selectedCamera() ?: return
+        val size = camera.supportedSizes.getOrNull(sizeSpinner.selectedItemPosition) ?: return
+        val viewWidth = preview.width.toFloat().takeIf { it > 0f } ?: return
+        val viewHeight = preview.height.toFloat().takeIf { it > 0f } ?: return
+        val displayDegrees = when (preview.display?.rotation ?: Surface.ROTATION_0) {
+            Surface.ROTATION_90 -> 90
+            Surface.ROTATION_180 -> 180
+            Surface.ROTATION_270 -> 270
+            else -> 0
+        }
+        val rawRotation = if (camera.facing == CameraFacing.FRONT) {
+            camera.sensorOrientation - displayDegrees
+        } else {
+            camera.sensorOrientation + displayDegrees
+        }
+        val rotation = ((rawRotation % 360) + 360) % 360
+        val quarterTurn = rotation == 90 || rotation == 270
+        val orientedWidth = if (quarterTurn) size.height.toFloat() else size.width.toFloat()
+        val orientedHeight = if (quarterTurn) size.width.toFloat() else size.height.toFloat()
+        val scale = max(viewWidth / orientedWidth, viewHeight / orientedHeight)
+        val sourceScaleX = scale * size.width / viewWidth
+        val sourceScaleY = scale * size.height / viewHeight
+        val (cos, sin) = when (rotation) {
+            90 -> 0f to 1f
+            180 -> -1f to 0f
+            270 -> 0f to -1f
+            else -> 1f to 0f
+        }
+        val scaleX = cos * sourceScaleX
+        val skewX = -sin * sourceScaleY
+        val skewY = sin * sourceScaleX
+        val scaleY = cos * sourceScaleY
+        val centerX = viewWidth / 2f
+        val centerY = viewHeight / 2f
+        preview.setTransform(Matrix().apply {
+            setValues(floatArrayOf(
+                scaleX,
+                skewX,
+                centerX - scaleX * centerX - skewX * centerY,
+                skewY,
+                scaleY,
+                centerY - skewY * centerX - scaleY * centerY,
+                0f,
+                0f,
+                1f
+            ))
+        })
     }
 
     private fun setControlsEnabled(enabled: Boolean) {

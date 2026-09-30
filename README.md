@@ -335,4 +335,4 @@ SDK 供应方的具体发布流程见 SDK 工程的 `docs/compliance/COMPLIANCE_
 | 摄像头推流不可用 | 确认已授予 CAMERA 权限、许可证包含 `RTSP_PUSH`、端口 8554 未占用，且设备存在所选编码器 |
 | USB UVC 只显示检测提示 | 设备未通过 Camera2 暴露；需实现 `UvcSurfaceSource` 并集成经过许可审查的 UVC 采集库 |
 
-新生成的截图和录像保存在应用内部 `files/captures`，通过应用内“本地文件”查看或删除；升级前已保存在 `Android/data/com.roboyi.rtspdemo/files/captures` 的旧文件仍会显示，直到用户删除。若 RTSP URL 内含账号密码，分享日志或截图前请注意遮盖凭据。
+新生成的录像、截图和 XML 保存在公共目录 `DCIM/RoboYiPlayer`，按项目名称及录像名称组织；非录像截图保存在 `pictures/时间` 子目录。项目、任务、缺陷和水印规则使用方法见 [项目检查录像说明](docs/PROJECT_INSPECTION_WORKFLOW.md)。首次录像需要授权 DCIM 文件夹以保存同目录 XML，旧版媒体仍可在文件页查看。若 RTSP URL 内含账号密码，分享日志或截图前请注意遮盖凭据。

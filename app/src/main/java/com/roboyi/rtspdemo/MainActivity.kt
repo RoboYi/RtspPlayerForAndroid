@@ -81,12 +81,16 @@ import com.roboyi.rtspdemo.domain.ConnectionEntry
 import com.roboyi.rtspdemo.domain.RtspAddress
 import com.roboyi.rtspdemo.domain.WatermarkPosition
 import com.roboyi.rtspdemo.domain.WatermarkTarget
+import com.roboyi.rtspdemo.data.InspectionXml
+import com.roboyi.rtspdemo.data.InspectionStore
+import com.roboyi.rtspdemo.data.InspectionSession
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.joinAll
 
 /** 页面负责交互和播放器生命周期；持久化、文件规则和设备发现分别交给独立组件。 */
 class MainActivity : AppCompatActivity() {
@@ -108,6 +112,46 @@ class MainActivity : AppCompatActivity() {
     )
 
     private lateinit var viewModel: MainViewModel
+    private val inspection by lazy { InspectionRecording(applicationContext) }
+    private val inspectionUi by lazy { InspectionUi(this) { updateCurrentWatermark() } }
+    private var pendingFolderAction: (() -> Unit)? = null
+    private var recordingEndAction: (() -> Unit)? = null
+    private var lastInspectionSpec: WatermarkSpec? = null
+    private val pendingDefectImages = mutableListOf<Pair<Long, () -> Unit>>()
+    private val inspectionJobs = mutableSetOf<kotlinx.coroutines.Job>()
+    private fun launchInspectionJob(block: suspend kotlinx.coroutines.CoroutineScope.() -> Unit) {
+        val job = lifecycleScope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY, block = block)
+        inspectionJobs += job
+        job.invokeOnCompletion { inspectionJobs.remove(job) }
+        job.start()
+    }
+    private fun finishDefectImages(force: Boolean = false) {
+        val ready = pendingDefectImages.filter { force || android.os.SystemClock.elapsedRealtime() >= it.first }
+        pendingDefectImages.removeAll(ready.toSet())
+        ready.forEach { it.second() }
+    }
+    private val inspectionTick = object : Runnable {
+        override fun run() {
+            if (isDestroyed || !::viewModel.isInitialized) return
+            finishDefectImages()
+            if (inspection.session != null && viewModel.state.recordingFile != null) {
+                val remaining = inspection.remainingMs()
+                if (remaining != null) {
+                    recordButton.text = "片尾 ${(remaining + 999) / 1000} 秒"
+                    if (remaining <= 0L) {
+                        val done = recordingEndAction; recordingEndAction = null
+                        stopRecording(finishNow = true, onComplete = done)
+                    }
+                }
+                val spec = watermarkSpec(WatermarkTarget.RECORDING)
+                if (spec != lastInspectionSpec) { player?.updateWatermark(spec); lastInspectionSpec = spec }
+            } else if (player?.isPlaying() == true) {
+                val spec = watermarkSpec(WatermarkTarget.PREVIEW)
+                if (spec != lastInspectionSpec) { player?.updateWatermark(spec); lastInspectionSpec = spec }
+            }
+            handler.postDelayed(this, 200L)
+        }
+    }
     private val onvif by lazy { OnvifDiscovery(applicationContext) }
     private val handler = Handler(Looper.getMainLooper())
     // 只在前台轮询状态；SDK 的播放与录像回调仍由播放器管理。
@@ -258,6 +302,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val requestInspectionFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        val pending = pendingFolderAction; pendingFolderAction = null
+        if (uri != null) runCatching { InspectionXml.acceptFolder(this, uri) }
+            .onSuccess { pending?.invoke() }
+            .onFailure { showMessage(it.message ?: "目录授权失败") }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyPlaybackSystemBars(hideNavigation = false)
@@ -276,6 +327,7 @@ class MainActivity : AppCompatActivity() {
         viewModel.uiState.observe(this, ::renderState)
 
         findViewById<ImageButton>(R.id.settings_button).setOnClickListener { showSettings() }
+        findViewById<Button>(R.id.projects_tab).setOnClickListener { showProjectManager() }
         findViewById<ImageButton>(R.id.about_button).setOnClickListener { showAbout() }
         findViewById<Button>(R.id.connect_button).setOnClickListener { connect() }
         findViewById<Button>(R.id.snapshot_button).setOnClickListener { snapshot() }
@@ -371,14 +423,19 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         handler.removeCallbacks(statusTick)
         handler.post(statusTick)
+        handler.removeCallbacks(inspectionTick)
+        handler.post(inspectionTick)
     }
 
     override fun onStop() {
         handler.removeCallbacks(statusTick)
+        // Recording watermarks continue while a system picker or another Activity covers this one.
+        if (inspection.session == null) handler.removeCallbacks(inspectionTick)
         super.onStop()
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(inspectionTick)
         digitalZoomPopup?.dismiss()
         fileDetailsPopup?.dismiss()
         stopMicrophoneCapture()
@@ -410,6 +467,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         when (intent.getStringExtra(AppNavigation.EXTRA_DIALOG)) {
+            "projects" -> window.decorView.post { showProjectManager() }
             AppNavigation.DIALOG_SETTINGS -> window.decorView.post { showSettings() }
             AppNavigation.DIALOG_ABOUT -> window.decorView.post { showAbout() }
         }
@@ -633,6 +691,10 @@ class MainActivity : AppCompatActivity() {
                     exitFullscreen()
                 } else if (onvifControlSurface.visibility == View.VISIBLE) {
                     closeOnvifControls()
+                } else if (viewModel.state.recordingFile != null) {
+                    stopRecording { finish() }
+                } else if (recordingStopInProgress) {
+                    showMessage("正在保存录像与 XML，请稍候")
                 } else {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
@@ -1363,26 +1425,33 @@ class MainActivity : AppCompatActivity() {
         }
         val decrease = zoomButton(R.drawable.ic_zoom_out, R.string.digital_zoom_out_description)
         val increase = zoomButton(R.drawable.ic_zoom_in, R.string.digital_zoom_in_description)
-        fun renderZoomValue() {
-            val factor = viewModel.state.digitalZoomFactor
+        var liveZoomFactor = viewModel.state.digitalZoomFactor
+        fun renderZoomValue(factor: Float = liveZoomFactor) {
             val canAdjust = player != null && viewModel.state.playback != PlaybackPhase.STOPPED
             value.text = getString(R.string.digital_zoom_value, factor)
-            decrease.isEnabled = canAdjust && factor > DigitalZoom.MIN_FACTOR
-            increase.isEnabled = canAdjust && factor < DigitalZoom.MAX_FACTOR
+            decrease.isEnabled = canAdjust && (decrease.isPressed || factor > DigitalZoom.MIN_FACTOR)
+            increase.isEnabled = canAdjust && (increase.isPressed || factor < DigitalZoom.MAX_FACTOR)
         }
         val zoomRepeatTasks = mutableListOf<Runnable>()
-        fun bindContinuousZoom(button: ImageButton, delta: Float) {
-            fun adjustOnce() {
-                if (applyDigitalZoom(viewModel.state.digitalZoomFactor + delta)) {
-                    renderZoomValue()
-                }
-            }
+        fun bindContinuousZoom(button: ImageButton, direction: Float) {
+            var pressStartFactor = liveZoomFactor
+            var lastFrameTimeMs = 0L
             lateinit var repeat: Runnable
             repeat = Runnable {
                 if (!button.isPressed || !button.isEnabled) return@Runnable
-                adjustOnce()
+                val frameTimeMs = SystemClock.uptimeMillis()
+                val elapsedMs = (frameTimeMs - lastFrameTimeMs)
+                    .coerceIn(0L, DIGITAL_ZOOM_MAX_FRAME_DELTA_MS)
+                lastFrameTimeMs = frameTimeMs
+                val next = DigitalZoom.normalize(
+                    liveZoomFactor + direction * DIGITAL_ZOOM_RATE_PER_SECOND * elapsedMs / 1000f
+                )
+                if (next != liveZoomFactor && applyDigitalZoom(next, persistState = false)) {
+                    liveZoomFactor = next
+                    renderZoomValue(next)
+                }
                 if (button.isPressed && button.isEnabled) {
-                    handler.postDelayed(repeat, DIGITAL_ZOOM_REPEAT_INTERVAL_MS)
+                    button.postOnAnimation(repeat)
                 }
             }
             zoomRepeatTasks += repeat
@@ -1390,23 +1459,36 @@ class MainActivity : AppCompatActivity() {
                 when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
                         view.isPressed = true
-                        adjustOnce()
+                        pressStartFactor = liveZoomFactor
+                        lastFrameTimeMs = SystemClock.uptimeMillis()
                         handler.removeCallbacks(repeat)
-                        handler.postDelayed(repeat, DIGITAL_ZOOM_REPEAT_DELAY_MS)
+                        button.postOnAnimation(repeat)
                         true
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         handler.removeCallbacks(repeat)
                         view.isPressed = false
-                        if (event.actionMasked == MotionEvent.ACTION_UP) view.performClick()
+                        if (event.actionMasked == MotionEvent.ACTION_UP) {
+                            if (kotlin.math.abs(liveZoomFactor - pressStartFactor) < DIGITAL_ZOOM_STEP) {
+                                val tapTarget = DigitalZoom.normalize(
+                                    pressStartFactor + direction * DIGITAL_ZOOM_STEP
+                                )
+                                if (applyDigitalZoom(tapTarget, persistState = false)) {
+                                    liveZoomFactor = tapTarget
+                                }
+                            }
+                            view.performClick()
+                        }
+                        applyDigitalZoom(liveZoomFactor, persistState = true)
+                        renderZoomValue(liveZoomFactor)
                         true
                     }
                     else -> true
                 }
             }
         }
-        bindContinuousZoom(decrease, -DIGITAL_ZOOM_STEP)
-        bindContinuousZoom(increase, DIGITAL_ZOOM_STEP)
+        bindContinuousZoom(decrease, -1f)
+        bindContinuousZoom(increase, 1f)
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -1430,6 +1512,9 @@ class MainActivity : AppCompatActivity() {
                 decrease.isPressed = false
                 increase.isPressed = false
                 zoomRepeatTasks.forEach(handler::removeCallbacks)
+                if (liveZoomFactor != viewModel.state.digitalZoomFactor) {
+                    applyDigitalZoom(liveZoomFactor, persistState = true)
+                }
                 digitalZoomPopup = null
             }
         }
@@ -1441,14 +1526,16 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun applyDigitalZoom(factor: Float): Boolean {
+    private fun applyDigitalZoom(factor: Float, persistState: Boolean = true): Boolean {
         val normalized = DigitalZoom.normalize(factor)
         return runCatching {
             val fragment = player ?: error(getString(R.string.player_not_ready))
             fragment.setDigitalZoom(normalized)
-            viewModel.setDigitalZoom(normalized)
-            selectedPreviewSlot?.digitalZoomFactor = normalized
-            selectedPreviewSlot?.cropRegion = viewModel.state.videoCropRegion
+            if (persistState) {
+                viewModel.setDigitalZoom(normalized)
+                selectedPreviewSlot?.digitalZoomFactor = normalized
+                selectedPreviewSlot?.cropRegion = viewModel.state.videoCropRegion
+            }
             true
         }.getOrElse {
             showMessage(getString(R.string.digital_zoom_failed, safeError(it)))
@@ -1647,6 +1734,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleRecordingPause() {
         if (viewModel.state.recordingFile == null) return
+        if (inspection.stopAtMs != null) { showMessage("片尾倒计时期间不能暂停"); return }
         val wasPaused = viewModel.state.recordingPaused
         runCatching {
             val fragment = player ?: error(getString(R.string.player_not_ready))
@@ -1659,39 +1747,67 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun snapshot() {
+        if (recordingStopInProgress) { showMessage("正在保存录像资料，请稍候再截图"); return }
         val fragment = player
         if (fragment?.isPlaying() != true || viewModel.state.playback != PlaybackPhase.PLAYING) {
-            showMessage(getString(R.string.connect_video_first))
-            return
+            showMessage(getString(R.string.connect_video_first)); return
         }
         if (!ensurePublicStorageAccess(::snapshot)) return
         runCatching {
-            val target = viewModel.newSnapshotFile()
-            val callback: (Boolean, Throwable?) -> Unit = { ok, error ->
+            val session = inspection.session
+            val atMs = inspection.elapsedMs
+            val capturedAt = System.currentTimeMillis()
+            val target = inspection.snapshotFile(session)
+            val source = inspection.sourceFile(target)
+            val shotSpec = inspection.spec(baseWatermarkSpec(WatermarkTarget.SCREENSHOT), session, atMs, now = capturedAt)
+            fragment.captureSurfaceScreenshot(source) { ok, error ->
                 runOnUiThread {
-                    if (!ok) {
-                        showMessage(getString(R.string.screenshot_failed, safeError(error)))
-                    } else {
-                        lifecycleScope.launch {
-                            val published = withContext(Dispatchers.IO) {
-                                runCatching { viewModel.publishCapture(target) }
-                            }
-                            published.onSuccess { publicFile ->
-                                viewModel.refreshCaptures()
-                                showMessage(getString(R.string.screenshot_saved, publicFile.absolutePath))
-                            }.onFailure { failure ->
-                                showMessage(getString(R.string.screenshot_failed, safeError(failure)))
+                    if (!ok) showMessage(getString(R.string.screenshot_failed, safeError(error)))
+                    else launchInspectionJob {
+                        val result = withContext(Dispatchers.IO) {
+                            runCatching {
+                                inspection.paintSnapshot(source, target, shotSpec)
+                                inspection.saveSnapshot(session, target, capturedAt, atMs)
                             }
                         }
+                        result.onSuccess { published ->
+                            viewModel.refreshCaptures()
+                            showMessage(getString(R.string.screenshot_saved, published.absolutePath))
+                            if (session?.project != null) {
+                                inspectionUi.editInfo("defect", null, source) { info, seconds ->
+                                    if (inspection.session === session) {
+                                        inspection.activateDefect(info, seconds)
+                                        updateCurrentWatermark()
+                                    }
+                                    val annotated = inspection.spec(baseWatermarkSpec(WatermarkTarget.SCREENSHOT),
+                                        session, atMs, defectOverride = info, now = capturedAt)
+                                    launchInspectionJob {
+                                        runCatching { withContext(Dispatchers.IO) { inspection.saveDefectInfo(session, target, info, seconds) } }
+                                            .onFailure { showMessage("缺陷 XML 保存失败：${it.message}") }
+                                    }
+                                    val replace: () -> Unit = {
+                                        launchInspectionJob {
+                                            val replacement = withContext(Dispatchers.IO) {
+                                                runCatching {
+                                                    inspection.paintSnapshot(source, target, annotated)
+                                                    inspection.saveSnapshot(session, target, capturedAt, atMs, info, seconds)
+                                                }
+                                            }
+                                            replacement.onSuccess {
+                                                viewModel.refreshCaptures()
+                                                showMessage("缺陷已保存，截图已替换，XML 已更新")
+                                            }.onFailure { showMessage("缺陷保存失败：${it.message}；原始截图已保留") }
+                                        }
+                                    }
+                                    if (inspection.session === session && seconds > 0) {
+                                        pendingDefectImages += (android.os.SystemClock.elapsedRealtime() + seconds * 1000L) to replace
+                                        showMessage("缺陷显示 $seconds 秒后自动替换截图")
+                                    } else replace()
+                                }
+                            }
+                        }.onFailure { showMessage("截图保存失败：${it.message}；暂存文件已保留") }
                     }
                 }
-            }
-            if (viewModel.state.watermark.appliesTo(WatermarkTarget.SCREENSHOT)) {
-                fragment.captureSurfaceScreenshotWithWatermark(
-                    target, watermarkSpec(WatermarkTarget.SCREENSHOT), callback = callback
-                )
-            } else {
-                fragment.captureSurfaceScreenshot(target, callback = callback)
             }
         }.onFailure { showMessage(getString(R.string.screenshot_failed, safeError(it))) }
     }
@@ -1705,12 +1821,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startRecordingIfReady() {
+        if (recordingStopInProgress) { showMessage("上一段录像正在保存，请稍候"); return }
         val fragment = player
         if (fragment?.isPlaying() != true || viewModel.state.playback != PlaybackPhase.PLAYING) {
             showMessage(getString(R.string.connect_video_first))
             return
         }
         if (!ensurePublicStorageAccess(::startRecordingIfReady)) return
+        if (!ensureInspectionFolder(::startRecordingIfReady)) return
         if (recordingAudioSource === RecordingAudioSource.External &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) !=
             PackageManager.PERMISSION_GRANTED
@@ -1719,20 +1837,27 @@ class MainActivity : AppCompatActivity() {
             return
         }
         runCatching {
-            val file = viewModel.newRecordingFile()
+            val file = inspection.begin()
+            val session = checkNotNull(inspection.session)
             viewModel.onRecordingStarted(file)
             val started = fragment.startRecording(
                 file = file,
                 spec = watermarkSpec(WatermarkTarget.RECORDING),
                 audio = RecordingAudioConfig(source = recordingAudioSource),
-                onDurationChangedMs = { ms -> runOnUiThread { viewModel.onRecordingDuration(file, ms) } },
+                onDurationChangedMs = { ms -> runOnUiThread {
+                    if (viewModel.state.recordingFile == file) inspection.duration(ms)
+                    viewModel.onRecordingDuration(file, ms)
+                } },
                 onSafetyStopped = { reason ->
                     runOnUiThread {
                         if (viewModel.onRecordingStopped(file) != null) {
+                            finishDefectImages(force = true)
+                            inspection.clear()
                             stopMicrophoneCapture()
                             lifecycleScope.launch {
+                                inspectionJobs.toList().joinAll()
                                 val published = withContext(Dispatchers.IO) {
-                                    runCatching { viewModel.publishCapture(file) }
+                                    runCatching { inspection.finish(session, file, "safety-stopped") }
                                 }
                                 published.onSuccess {
                                     viewModel.refreshCaptures()
@@ -1754,20 +1879,36 @@ class MainActivity : AppCompatActivity() {
                 showMessage(getString(R.string.recording_started, file.name))
             } else if (!started) {
                 viewModel.onRecordingStopped(file)
+                inspection.abort()
                 showMessage(getString(R.string.recording_not_started))
             }
         }.onFailure {
+            inspection.abort()
             viewModel.onRecordingStopped()
             showMessage(getString(R.string.recording_failed, safeError(it)))
         }
     }
 
-    private fun stopRecording(onComplete: (() -> Unit)? = null) {
+    private fun stopRecording(finishNow: Boolean = false, onComplete: (() -> Unit)? = null) {
         if (recordingStopInProgress) return
         val activeFile = viewModel.state.recordingFile ?: run {
             onComplete?.invoke()
             return
         }
+        if (!finishNow) {
+            if (inspection.stopAtMs != null) { if (onComplete != null) recordingEndAction = onComplete; return }
+            if (viewModel.state.recordingPaused) toggleRecordingPause()
+            if (viewModel.state.recordingPaused) return
+            val seconds = inspection.startEnding()
+            if (seconds > 0) {
+                recordingEndAction = onComplete
+                updateCurrentWatermark()
+                showMessage("正在补录片尾水印，将在 $seconds 秒后结束")
+                return
+            }
+        }
+        val session = inspection.session
+        finishDefectImages(force = true)
         val fragment = player
         val capture = microphoneCapture
         microphoneCapture = null
@@ -1778,19 +1919,21 @@ class MainActivity : AppCompatActivity() {
         recordButton.isEnabled = false
         recordButton.setText(R.string.recording_finishing)
         lifecycleScope.launch {
+            inspectionJobs.toList().joinAll()
             val result = withContext(Dispatchers.IO) {
                 var error: Throwable? = null
                 var publicFile: File? = null
                 runCatching { capture?.close() }.onFailure { error = it }
                 runCatching { fragment?.stopAllRecordings() }.onFailure { if (error == null) error = it }
                 if (error == null) {
-                    runCatching { viewModel.publishCapture(activeFile) }
+                    runCatching { if (session != null) inspection.finish(session, activeFile) else viewModel.publishCapture(activeFile) }
                         .onSuccess { publicFile = it }
                         .onFailure { error = it }
                 }
                 error to publicFile
             }
             val (failure, publicFile) = result
+            inspection.clear()
             recordingStopInProgress = false
             recordButton.isEnabled = viewModel.state.playback == PlaybackPhase.PLAYING
             recordButton.setText(R.string.record)
@@ -1799,7 +1942,7 @@ class MainActivity : AppCompatActivity() {
                 showMessage(getString(R.string.recording_saved, publicFile?.absolutePath.orEmpty()))
                 onComplete?.invoke()
             } else {
-                showMessage(getString(R.string.stop_recording_failed, safeError(failure)))
+                showMessage("录像 / XML 保存失败：${failure.message}；请在项目页重试导出 XML")
             }
         }
     }
@@ -1812,6 +1955,38 @@ class MainActivity : AppCompatActivity() {
         pendingLegacyStorageAction = resume
         requestPublicStoragePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         return false
+    }
+
+    private fun ensureInspectionFolder(resume: () -> Unit): Boolean {
+        if (InspectionXml.hasAccess(this)) return true
+        AlertDialog.Builder(this).setTitle("授权录像资料目录")
+            .setMessage("录像保存在公共目录 DCIM/RoboYiPlayer。为在同一目录保存 XML，请在系统选择器中选择 DCIM 或其下的 RoboYiPlayer 文件夹，并点击“使用此文件夹”。只需授权一次。")
+            .setPositiveButton("选择文件夹") { _, _ -> chooseInspectionFolder(resume) }
+            .setNegativeButton("取消", null).show()
+        return false
+    }
+
+    private fun chooseInspectionFolder(resume: (() -> Unit)? = null) {
+        pendingFolderAction = resume
+        requestInspectionFolder.launch(Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADCIM"))
+    }
+
+    private fun showProjectManager() {
+        inspectionUi.showManager(viewModel.state.recordingFile != null || recordingStopInProgress,
+            authorize = { chooseInspectionFolder() }, retryXml = {
+                if (ensureInspectionFolder { retryInspectionXml() }) retryInspectionXml()
+            })
+    }
+
+    private fun retryInspectionXml() {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching {
+                val sessions = inspection.store.sessions()
+                sessions.forEach { InspectionXml.write(applicationContext, it) }
+                sessions.size
+            } }
+            result.onSuccess { showMessage("已导出 $it 个录像 XML") }.onFailure { showMessage("XML 导出失败：${it.message}") }
+        }
     }
 
     private fun showRecordingAudioSettings() {
@@ -1964,29 +2139,57 @@ class MainActivity : AppCompatActivity() {
         selectAllCapturesButton.isEnabled = true
         selectedCapture = selectedCapture?.takeIf { it.absolutePath in selectedCapturePaths }
             ?: allFiles.firstOrNull { it.absolutePath in selectedCapturePaths }
-        files.forEachIndexed { index, file ->
-            val video = file.extension.equals("mp4", true)
-            val time = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                .format(Date(file.lastModified()))
-            val size = getString(R.string.file_size_mb, file.length() / 1048576.0)
-            val selected = file.absolutePath in selectedCapturePaths
-            val item = captureCard(file, video, time, size, selected)
-            item.setOnClickListener {
-                if (!selectedCapturePaths.add(file.absolutePath)) {
-                    selectedCapturePaths.remove(file.absolutePath)
-                }
-                selectedCapture = file.takeIf { it.absolutePath in selectedCapturePaths }
-                    ?: files.firstOrNull { it.absolutePath in selectedCapturePaths }
-                renderCaptures(viewModel.state)
+        val sessions = inspection.store.sessions()
+        val byPath = buildMap<String, InspectionSession> {
+            sessions.forEach { session ->
+                put(session.video, session)
+                session.snapshots.forEach { put(it.optString("path"), session) }
             }
-            capturesList.addView(item, GridLayout.LayoutParams(
-                GridLayout.spec(index / columns, 1),
-                GridLayout.spec(index % columns, 1, 1f)
-            ).apply {
-                width = 0
-                height = ViewGroup.LayoutParams.WRAP_CONTENT
-                setMargins(dp(4), dp(4), dp(4), dp(4))
-            })
+        }
+        fun sessionFor(file: File): InspectionSession? =
+            runCatching { byPath[inspection.repository.relative(file)] }.getOrNull()
+        var gridRow = 0
+        fun groupHeader(title: String, members: List<File>) {
+            val paths = members.map { it.absolutePath }.toSet()
+            val checked = paths.isNotEmpty() && selectedCapturePaths.containsAll(paths)
+            val header = Button(this).apply {
+                text = "${if (checked) "☑" else "☐"} $title（${members.size}） · ${if (checked) "取消全选" else "全选本组"}"
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                isAllCaps = false
+                setOnClickListener {
+                    if (selectedCapturePaths.containsAll(paths)) selectedCapturePaths.removeAll(paths)
+                    else selectedCapturePaths.addAll(paths)
+                    selectedCapture = allFiles.firstOrNull { it.absolutePath in selectedCapturePaths }
+                    renderCaptures(viewModel.state)
+                }
+            }
+            capturesList.addView(header, GridLayout.LayoutParams(
+                GridLayout.spec(gridRow++, 1), GridLayout.spec(0, columns, 1f)
+            ).apply { width = 0; height = ViewGroup.LayoutParams.WRAP_CONTENT })
+        }
+        files.groupBy { sessionFor(it)?.project?.id.orEmpty() }.forEach { (_, projectFiles) ->
+            val firstSession = sessionFor(projectFiles.first())
+            groupHeader(firstSession?.project?.let { "项目：${it.name} · ${it.values["number"].orEmpty()}" } ?: "未选择项目 / 独立截图", projectFiles)
+            projectFiles.groupBy { sessionFor(it)?.task?.id.orEmpty() }.forEach { (_, taskFiles) ->
+                val task = sessionFor(taskFiles.first())?.task
+                groupHeader(task?.let { "    任务：${it.name} · ${it.values["number"].orEmpty()}" } ?: "    未选择任务", taskFiles)
+                taskFiles.forEachIndexed { index, file ->
+                    val video = file.extension.equals("mp4", true)
+                    val time = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(file.lastModified()))
+                    val size = getString(R.string.file_size_mb, file.length() / 1048576.0)
+                    val item = captureCard(file, video, time, size, file.absolutePath in selectedCapturePaths)
+                    item.setOnClickListener {
+                        if (!selectedCapturePaths.add(file.absolutePath)) selectedCapturePaths.remove(file.absolutePath)
+                        selectedCapture = file.takeIf { it.absolutePath in selectedCapturePaths }
+                            ?: files.firstOrNull { it.absolutePath in selectedCapturePaths }
+                        renderCaptures(viewModel.state)
+                    }
+                    capturesList.addView(item, GridLayout.LayoutParams(
+                        GridLayout.spec(gridRow + index / columns, 1), GridLayout.spec(index % columns, 1, 1f)
+                    ).apply { width = 0; height = ViewGroup.LayoutParams.WRAP_CONTENT; setMargins(dp(4), dp(4), dp(4), dp(4)) })
+                }
+                gridRow += (taskFiles.size + columns - 1) / columns
+            }
         }
         val allSelected = files.isNotEmpty() && files.all { it.absolutePath in selectedCapturePaths }
         selectAllCapturesButton.setText(if (allSelected) R.string.clear_selection else R.string.select_all)
@@ -3555,7 +3758,9 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun watermarkSpec(target: WatermarkTarget): WatermarkSpec =
+    private fun watermarkSpec(target: WatermarkTarget): WatermarkSpec = inspection.spec(baseWatermarkSpec(target))
+
+    private fun baseWatermarkSpec(target: WatermarkTarget): WatermarkSpec =
         RoboYiWatermarkMapper.spec(
             this, viewModel.state.watermark, target, getString(R.string.app_name), bitmapWatermark
         )
@@ -3566,19 +3771,26 @@ class MainActivity : AppCompatActivity() {
         } else {
             WatermarkTarget.PREVIEW
         }
-        player?.updateWatermark(watermarkSpec(target))
+        val spec = watermarkSpec(target)
+        player?.updateWatermark(spec)
+        lastInspectionSpec = spec
     }
 
     private fun showWatermarkModeDialog() {
         val modes = arrayOf(
             getString(R.string.watermark_mode_osd),
-            getString(R.string.watermark_mode_bitmap)
+            getString(R.string.watermark_mode_bitmap),
+            "项目 / 任务 / 缺陷 / 时间规则"
         )
         AlertDialog.Builder(this)
             .setTitle(R.string.watermark_mode_title)
             .setItems(modes) { dialog, index ->
                 dialog.dismiss()
-                if (index == 0) showWatermarkSettings() else showBitmapWatermarkEditor()
+                when (index) {
+                    0 -> showWatermarkSettings()
+                    1 -> showBitmapWatermarkEditor()
+                    else -> if (inspection.session != null || recordingStopInProgress) showMessage("请结束当前录像后修改规则") else inspectionUi.showRules()
+                }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -3688,12 +3900,39 @@ class MainActivity : AppCompatActivity() {
         }
         content.addView(label(getString(R.string.osd_text)))
         content.addView(textInput)
-        content.addView(label(getString(R.string.text_size, watermark.textSizeSp.toInt())))
+        val sizeLabel = label(getString(R.string.text_size, watermark.textSizeSp.toInt()))
+        content.addView(sizeLabel)
         val sizeSeek = SeekBar(this).apply {
             max = 42
             progress = (watermark.textSizeSp - 12).toInt().coerceIn(0, 42)
         }
-        content.addView(sizeSeek)
+        val sizeDecrease = Button(this).apply {
+            text = "−"; contentDescription = "文字大小 减少 1"
+            minWidth = 0; minimumWidth = 0; setPadding(0, 0, 0, 0)
+            setOnClickListener { sizeSeek.progress = (sizeSeek.progress - 1).coerceAtLeast(0) }
+        }
+        val sizeIncrease = Button(this).apply {
+            text = "+"; contentDescription = "文字大小 增加 1"
+            minWidth = 0; minimumWidth = 0; setPadding(0, 0, 0, 0)
+            setOnClickListener { sizeSeek.progress = (sizeSeek.progress + 1).coerceAtMost(sizeSeek.max) }
+        }
+        fun updateSize() {
+            sizeLabel.text = getString(R.string.text_size, sizeSeek.progress + 12)
+            sizeDecrease.isEnabled = sizeSeek.progress > 0
+            sizeIncrease.isEnabled = sizeSeek.progress < sizeSeek.max
+        }
+        sizeSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) = updateSize()
+            override fun onStartTrackingTouch(bar: SeekBar) = Unit
+            override fun onStopTrackingTouch(bar: SeekBar) = Unit
+        })
+        updateSize()
+        content.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            addView(sizeDecrease, LinearLayout.LayoutParams(dp(48), dp(48)))
+            addView(sizeSeek, LinearLayout.LayoutParams(0, dp(40), 1f))
+            addView(sizeIncrease, LinearLayout.LayoutParams(dp(48), dp(48)))
+        })
         content.addView(label(getString(R.string.text_color)))
         val colors = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
         listOf(R.string.color_white, R.string.color_black, R.string.color_blue).forEachIndexed { index, name ->
@@ -3793,8 +4032,8 @@ class MainActivity : AppCompatActivity() {
         const val COMPACT_PREVIEW_HEIGHT_DP = 250
         const val PRIVACY_ACCEPTED_VERSION_KEY = "privacy_notice_accepted_version"
         const val DIGITAL_ZOOM_STEP = 0.1f
-        const val DIGITAL_ZOOM_REPEAT_DELAY_MS = 260L
-        const val DIGITAL_ZOOM_REPEAT_INTERVAL_MS = 70L
+        const val DIGITAL_ZOOM_RATE_PER_SECOND = 1.25f
+        const val DIGITAL_ZOOM_MAX_FRAME_DELTA_MS = 34L
         const val VIDEO_CROP_CAPTURE_SETTLE_MS = 200L
         const val REMOTE_FOCUS_TAG = "RoboYiRemoteFocus"
     }

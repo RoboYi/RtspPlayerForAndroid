@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Keep access to media created before the public root was renamed. -->
+    <external-path name="inspection_dcim" path="DCIM/RtspPlayer/" />
     <external-files-path name="captures" path="captures/" />
     <files-path name="captures_fallback" path="captures/" />
     <external-path name="public_dcim" path="DCIM/RoboYiPlayer/" />

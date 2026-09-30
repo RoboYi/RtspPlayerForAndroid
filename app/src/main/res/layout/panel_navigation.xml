@@ -11,5 +11,6 @@
 
     <Button android:id="@+id/history_tab" style="@style/NavigationRailButton" android:drawableTop="@drawable/ic_nav_playback" android:text="@string/nav_playback" />
     <Button android:id="@+id/captures_tab" style="@style/NavigationRailButton" android:drawableTop="@drawable/ic_nav_files" android:text="@string/nav_files" />
+    <Button android:id="@+id/projects_tab" style="@style/NavigationRailButton" android:drawableTop="@drawable/ic_nav_devices" android:text="项目" />
     <Button android:id="@+id/camera_push_button" style="@style/NavigationRailButton" android:drawableTop="@drawable/ic_nav_push" android:text="@string/nav_push" />
 </LinearLayout>

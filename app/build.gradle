@@ -47,6 +47,7 @@ android {
         targetSdk 36
         versionCode 5
         versionName '1.0.4-Beta'
+        testInstrumentationRunner 'com.roboyi.rtspdemo.InspectionSmokeInstrumentation'
         ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
         buildConfigField 'String', 'ROBOYI_LICENSE', '"RYL4.prod-2026-01.eyJzY2hlbWFWZXJzaW9uIjo0LCJsaWNlbnNlSWQiOiJsaWMtcnRzcHBsYXllci1wZXJwZXR1YWwtdjEwNC0yMDI2MDkyMiIsImFwcGxpY2F0aW9uTGFiZWwiOiJSdHNwUGxheWVyIiwicGFja2FnZU5hbWVzIjpbImNvbS5yb2JveWkucnRzcHBsYXllciJdLCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAsImNvZGVjU2NvcGUiOiJBVkNfSEVWQyIsImZlYXR1cmVzIjpbIlBMQVlCQUNLIiwiUkVDT1JESU5HIiwiUlRTUF9QVVNIIiwiU0NSRUVOU0hPVCJdfQ.MEUCIQCNE9hLh764cVpc5HGSzu5kNC1wLr4t8cwcyqndZqKRnwIgf38dmw97YmPeUIWfrPQeVEObrlmA7izDGrlS-nL1JiM"'
         buildConfigField 'String', 'PRIVACY_OPERATOR', groovy.json.JsonOutput.toJson(privacyOperator)
