@@ -4,9 +4,9 @@
 
 商业上架风险和当前阻断项见 [上架评估](docs/STORE_RELEASE_RISK_REVIEW.md)。更新 SDK 时须同时重建并重命名 Core、Transport 和 Camera Push 三个 AAR 文件中的版本号，并同步修改 `app/build.gradle` 的 `sdkArtifactVersion`、app 版本及本文的文件名/版本描述；不要仅更改 Gradle 中的引用而保留旧制品。
 
-制作 release 包前，将 `release-policy.properties.example` 复制为 `release-policy.properties`，填写真实上架主体及已发布的 HTTPS 隐私政策地址。构建会校验这两项并在 app 中提供完整政策入口；隐私政策草案见 [PRIVACY_POLICY_DRAFT.md](docs/PRIVACY_POLICY_DRAFT.md)。
+Demo 可直接运行，不需要发布配置。`build.gradle` 不设置发布门禁。正式 APK 可在本机配置签名、授权和隐私信息，使用独立发布脚本检查；见 [发布说明](docs/RELEASING.md)。应用已内置完整隐私政策，无在线地址时也可离线阅读。
 
-正式商业授权签发后，将 `release-license.properties.example` 复制为 `release-license.properties`，填入匹配本 app 的 RYL4 正式许可证和授权方公开 `.spki` 文件路径。release 构建核验签名、包名、应用名、功能及有效期，并拒绝 demo 许可证；私钥不要复制到本工程。
+需要替换正式授权时，将 `release-license.properties.example` 复制为 `release-license.properties`，填入匹配本 app 的 RYL4 许可证。签名和授权配置均不提交 Git，签发私钥不要复制到本工程。
 
 **申请 SDK、试用授权或商业授权：请联系 [RoboYi@126.com](mailto:RoboYi@126.com)。**
 
@@ -29,7 +29,7 @@ SDK 支持 H.264/H.265 RTSP 拉流与 Camera2 摄像头推流，使用 Android M
 
 ## 运行 demo
 
-1. 使用 Android Studio 打开本目录，配置 Android SDK 35，等待 Gradle 同步完成。
+1. 使用 Android Studio 打开本目录，配置 JDK 17 和 Android SDK 36，等待 Gradle 同步完成。
 2. 连接 Android 7.0（API 24）及以上的设备；当前工程打包 `arm64-v8a` 和 `armeabi-v7a`。
 3. 运行 `app`。启动后确认页面显示“永久授权”。demo 始终使用 `app/build.gradle` 中的 `BuildConfig.ROBOYI_LICENSE`；该许可证**仅匹配此 demo**，页面不提供导入授权入口。
 4. 输入可访问的 RTSP 地址并点击“连接”，例如 `rtsp://192.168.1.100:554/Streaming/Channels/101`。实际路径、端口及账号密码以摄像机配置为准。
@@ -48,7 +48,9 @@ SDK 支持 H.264/H.265 RTSP 拉流与 Camera2 摄像头推流，使用 Android M
 2. 点击搜索结果查看设备详情。优先选择标有“设备返回”的 RTSP 地址；标有“候选地址”的路径尚未由设备确认，需要连接验证。
 3. 选择码流后返回播放区，点击“连接”。若设备需要 RTSP 认证，请使用设备提供的账号密码。
 
-海康 HTTP 探测只在 ONVIF 未发现设备时作为兜底。搜索时若用户名和密码都留空，会尝试 `admin/admin`；只要填写了其中任意一项，就原样使用输入的凭据。它依赖设备网络可达以及相应接口开放，不能保证发现所有型号，也不集成海康 SDK。
+ONVIF 搜索实现位于 SDK Core AAR：先组播，零结果时按 Wi-Fi/有线网络的实际 IPv4 前缀进行 TCP/HTTP 探测，不依赖 ping，也不统一假定 `/24`。扫描范围留空时自动获取；卓易通返回虚拟接口、范围与已连接摄像机不匹配或无法获取时，可填写实际范围（例如 `192.168.0.0/23`）重试。搜索按钮在运行时变为“取消搜索”，取消或超时保留已发现设备。
+
+默认网段探测限 1024 个主机地址、24 路并发、45 秒截止时间；超大范围请分批搜索。仅经 ONVIF 响应确认的设备进入列表，普通网页或仅有 HTTP 401/403 不算设备。搜索时若用户名和密码都留空，会尝试 `admin/admin`；填写任意一项则原样使用输入。详细 Profile 和控制能力在选择设备后读取。组播已有结果时不进行网段兜底，因此不补齐组播部分发现的情况。
 
 ## 接入自己的 Android 应用
 
@@ -303,7 +305,7 @@ CameraDiscovery.search(applicationContext, credentials) { devices ->
 
 ## 授权与购买
 
-本项目中的永久演示许可证只匹配 `RtspPlayer` / `com.roboyi.rtspdemo`，适用于学习本 demo 的接入方式。将 SDK 用于自己的应用、修改包名或应用名称、增加授权功能时，需要取得与目标应用匹配的许可证及对应 SDK 交付包。
+本项目中的永久演示许可证只匹配 `RtspPlayer` / `com.roboyi.rtspplayer`，适用于学习本 demo 的接入方式。将 SDK 用于自己的应用、修改包名或应用名称、增加授权功能时，需要取得与目标应用匹配的许可证及对应 SDK 交付包。
 
 **SDK 试用、采购、商业授权与技术对接，请发送邮件至 [RoboYi@126.com](mailto:RoboYi@126.com)。** 建议在邮件中提供应用名称、包名、目标设备与 Android 版本，以及需要的编解码范围和功能（播放、录像、截图、转推等），便于确认交付内容。
 

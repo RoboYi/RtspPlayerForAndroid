@@ -31,12 +31,12 @@ data class InspectionRule(
     val size: Float = 20f, val color: Int = -1, val background: Int = -16777216,
     val mode: String = "all", val startSeconds: Int = 5, val endSeconds: Int = 5,
     val timeFormat: String = "yyyy-MM-dd HH:mm:ss",
-    val opacity: Float = 1f
+    val textOpacity: Float = 1f, val backgroundOpacity: Float = 1f
 ) {
     fun json() = JSONObject().put("enabled", enabled).put("x", x.toDouble()).put("y", y.toDouble())
         .put("size", size.toDouble()).put("color", color).put("background", background)
         .put("mode", mode).put("n", startSeconds).put("m", endSeconds).put("timeFormat", timeFormat)
-        .put("opacity", opacity.toDouble())
+        .put("textOpacity", textOpacity.toDouble()).put("backgroundOpacity", backgroundOpacity.toDouble())
     fun visible(elapsedMs: Long, remainingMs: Long?): Boolean = enabled && when (mode) {
         "start" -> elapsedMs < startSeconds * 1000L
         "middle" -> elapsedMs >= startSeconds * 1000L && (remainingMs == null || remainingMs > endSeconds * 1000L)
@@ -44,12 +44,16 @@ data class InspectionRule(
         else -> true
     }
     companion object {
+        private fun opacity(j: JSONObject, key: String): Float {
+            val legacy = j.optDouble("opacity", 1.0).takeIf { it.isFinite() } ?: 1.0
+            return (j.optDouble(key, legacy).takeIf { it.isFinite() } ?: legacy).toFloat().coerceIn(0f, 1f)
+        }
         fun from(j: JSONObject) = InspectionRule(j.optBoolean("enabled", true),
             j.optDouble("x", 3.0).toFloat().coerceIn(0f, 100f), j.optDouble("y", 4.0).toFloat().coerceIn(0f, 100f),
             j.optDouble("size", 20.0).toFloat().coerceIn(8f, 96f), j.optInt("color", -1), j.optInt("background", -16777216),
             j.optString("mode", "all"), j.optInt("n", 5).coerceIn(0, 3600), j.optInt("m", 5).coerceIn(0, 3600),
             j.optString("timeFormat", "yyyy-MM-dd HH:mm:ss"),
-            (j.optDouble("opacity", 1.0).takeIf { it.isFinite() } ?: 1.0).toFloat().coerceIn(0f, 1f))
+            opacity(j, "textOpacity"), opacity(j, "backgroundOpacity"))
     }
 }
 
@@ -155,6 +159,28 @@ class InspectionStore private constructor(context: Context) {
     }
     @Synchronized fun folderUri(): String = data.optString("folderUri")
     @Synchronized fun setFolderUri(uri: String) { data.put("folderUri", uri); save() }
+    @Synchronized fun clearLocalData(context: Context): Boolean {
+        var complete = true
+        val uri = folderUri().takeIf(String::isNotBlank)
+        data = JSONObject()
+        runCatching {
+            file.delete()
+            check(!file.baseFile.exists())
+        }.onFailure { complete = false }
+        listOf("inspection-xml", "inspection-sources").forEach { name ->
+            val directory = File(context.filesDir, name)
+            if (directory.exists() && !directory.deleteRecursively()) complete = false
+        }
+        if (uri != null) context.contentResolver.persistedUriPermissions
+            .filter { it.uri.toString() == uri }.forEach { permission ->
+                var flags = 0
+                if (permission.isReadPermission) flags = flags or android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                if (permission.isWritePermission) flags = flags or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                runCatching { context.contentResolver.releasePersistableUriPermission(permission.uri, flags) }
+                    .onFailure { complete = false }
+            }
+        return complete
+    }
     @Synchronized private fun save() {
         val output = file.startWrite()
         try { output.write(data.toString().toByteArray(Charsets.UTF_8)); file.finishWrite(output) }

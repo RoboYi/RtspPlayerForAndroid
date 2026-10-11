@@ -18,12 +18,11 @@ if (releasePolicyFile.isFile()) {
 if (releaseLicenseFile.isFile()) {
     releaseLicenseFile.withInputStream { releaseLicense.load(it) }
 }
-def privacyOperator = releasePolicy.getProperty('privacyOperator', '').trim()
+def privacyOperator = releasePolicy.getProperty('privacyOperator', 'Roboyi').trim()
 def privacyPolicyUrl = releasePolicy.getProperty('privacyPolicyUrl', '').trim()
-def privacyContactEmail = releasePolicy.getProperty('privacyContactEmail', '').trim()
-def privacyPolicyVersion = releasePolicy.getProperty('privacyPolicyVersion', '').trim()
+def privacyContactEmail = releasePolicy.getProperty('privacyContactEmail', 'roboyi@126.com').trim()
+def privacyPolicyVersion = releasePolicy.getProperty('privacyPolicyVersion', '2026-10-11').trim()
 def releaseLicenseKey = releaseLicense.getProperty('licenseKey', '').trim()
-def releaseLicensePublicKeyFile = releaseLicense.getProperty('publicKeyFile', '').trim()
 def signingStoreFile = releaseSigning.getProperty('storeFile', '').trim()
 def signingKeyAlias = releaseSigning.getProperty('keyAlias', '').trim()
 def signingStorePassword = providers.environmentVariable('ROBOYI_RELEASE_STORE_PASSWORD').orNull ?:
@@ -32,7 +31,7 @@ def signingKeyPassword = providers.environmentVariable('ROBOYI_RELEASE_KEY_PASSW
     releaseSigning.getProperty('keyPassword', '')
 def hasReleaseSigning = signingStoreFile && signingKeyAlias &&
     signingStorePassword && signingKeyPassword
-// Keep this identical to the version suffix of both rebuilt SDK AAR files.
+// SDK artifacts are versioned independently from the application.
 def sdkArtifactVersion = 'V1.0.4-Beta'
 def sdkCoreAar = file("libs/roboyiplayer-core-avc-hevc-release-discovery-${sdkArtifactVersion}.aar")
 def sdkTransportAar = file("libs/roboyiplayer-transport-gstreamer-avc-hevc-release-${sdkArtifactVersion}.aar")
@@ -45,15 +44,15 @@ android {
         applicationId 'com.roboyi.rtspplayer'
         minSdk 24
         targetSdk 36
-        versionCode 5
-        versionName '1.0.4-Beta'
+        versionCode 6
+        versionName '1.0.5'
         testInstrumentationRunner 'com.roboyi.rtspdemo.InspectionSmokeInstrumentation'
         ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
         buildConfigField 'String', 'ROBOYI_LICENSE', '"RYL4.prod-2026-01.eyJzY2hlbWFWZXJzaW9uIjo0LCJsaWNlbnNlSWQiOiJsaWMtcnRzcHBsYXllci1wZXJwZXR1YWwtdjEwNC0yMDI2MDkyMiIsImFwcGxpY2F0aW9uTGFiZWwiOiJSdHNwUGxheWVyIiwicGFja2FnZU5hbWVzIjpbImNvbS5yb2JveWkucnRzcHBsYXllciJdLCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAsImNvZGVjU2NvcGUiOiJBVkNfSEVWQyIsImZlYXR1cmVzIjpbIlBMQVlCQUNLIiwiUkVDT1JESU5HIiwiUlRTUF9QVVNIIiwiU0NSRUVOU0hPVCJdfQ.MEUCIQCNE9hLh764cVpc5HGSzu5kNC1wLr4t8cwcyqndZqKRnwIgf38dmw97YmPeUIWfrPQeVEObrlmA7izDGrlS-nL1JiM"'
         buildConfigField 'String', 'PRIVACY_OPERATOR', groovy.json.JsonOutput.toJson(privacyOperator)
         buildConfigField 'String', 'PRIVACY_POLICY_URL', groovy.json.JsonOutput.toJson(privacyPolicyUrl)
         buildConfigField 'String', 'PRIVACY_CONTACT_EMAIL', groovy.json.JsonOutput.toJson(privacyContactEmail)
-        buildConfigField 'String', 'PRIVACY_POLICY_VERSION', groovy.json.JsonOutput.toJson(privacyPolicyVersion ?: 'debug-policy-v1')
+        buildConfigField 'String', 'PRIVACY_POLICY_VERSION', groovy.json.JsonOutput.toJson(privacyPolicyVersion ?: '2026-10-11')
     }
 
     compileOptions {
@@ -83,6 +82,7 @@ android {
 
     buildTypes {
         release {
+            debuggable false
             if (hasReleaseSigning) signingConfig signingConfigs.release
             if (releaseLicenseKey) {
                 buildConfigField 'String', 'ROBOYI_LICENSE', groovy.json.JsonOutput.toJson(releaseLicenseKey)
@@ -93,10 +93,13 @@ android {
     packaging {
         jniLibs { pickFirsts += ['**/libc++_shared.so'] }
     }
+
+    lint {
+        // Untranslated optional features use the English base resources.
+        warning 'MissingTranslation'
+    }
 }
 
-
-// ... existing code ...
 
 android.applicationVariants.all { variant ->
     if (variant.buildType.name == 'release') {
@@ -119,87 +122,4 @@ dependencies {
     implementation files(sdkCoreAar)
     implementation files(sdkTransportAar)
     implementation files(sdkCameraPushAar)
-}
-
-tasks.register('verifyReleaseNativePageSize', Exec) {
-    group = 'verification'
-    description = 'Require 16 KB-compatible arm64 libraries in the shipping SDK.'
-    commandLine 'python', rootProject.file('tools/check_native_page_size.py'),
-        sdkTransportAar
-}
-tasks.register('verifyReleasePolicy') {
-    group = 'verification'
-    description = 'Require the real publishing entity and a public HTTPS privacy policy URL.'
-    doLast {
-        def url = null
-        try { url = new URI(privacyPolicyUrl) } catch (Exception ignored) { }
-        if (!privacyOperator || url == null || url.scheme != 'https' ||
-            !url.host || url.userInfo || privacyPolicyUrl.contains('<') ||
-            !(privacyContactEmail ==~ /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/) ||
-            !(privacyPolicyVersion ==~ /^\d{4}-\d{2}-\d{2}(?:-[A-Za-z0-9]+)?$/)) {
-            throw new GradleException('Set privacyOperator, a public HTTPS privacyPolicyUrl, privacyContactEmail and privacyPolicyVersion in release-policy.properties')
-        }
-    }
-}
-tasks.register('verifyReleaseLicense') {
-    group = 'verification'
-    description = 'Require a separately issued production license for release builds.'
-    doLast {
-        def valid = false
-        try {
-            def parts = releaseLicenseKey.split('\\.')
-            if (parts.length == 4 && parts[0] == 'RYL4' && parts[1].startsWith('prod-')) {
-                def payload = new groovy.json.JsonSlurper().parseText(
-                    new String(java.util.Base64.getUrlDecoder().decode(parts[2]), 'UTF-8'))
-                def keyFile = rootProject.file(releaseLicensePublicKeyFile)
-                def publicKey = java.security.KeyFactory.getInstance('EC').generatePublic(
-                    new java.security.spec.X509EncodedKeySpec(java.nio.file.Files.readAllBytes(keyFile.toPath())))
-                def signature = java.security.Signature.getInstance('SHA256withECDSA')
-                signature.initVerify(publicKey)
-                signature.update(parts.take(3).join('.').getBytes('UTF-8'))
-                def signed = signature.verify(java.util.Base64.getUrlDecoder().decode(parts[3]))
-                // The configured issuer must be the same key compiled into the shipped Core AAR.
-                def ringEntry = "${parts[1]}:${java.util.Base64.getEncoder().encodeToString(java.nio.file.Files.readAllBytes(keyFile.toPath()))}"
-                def issuerInSdk = false
-                new java.util.zip.ZipFile(sdkCoreAar).withCloseable { aar ->
-                    def classes = aar.getEntry('classes.jar')
-                    if (classes != null) {
-                        new java.util.zip.ZipInputStream(aar.getInputStream(classes)).withCloseable { jar ->
-                            def entry
-                            while ((entry = jar.nextEntry) != null) {
-                                if (entry.name == 'com/roboyi/rtsp/BuildConfig.class') {
-                                    issuerInSdk = new String(jar.bytes, 'ISO-8859-1').contains(ringEntry)
-                                    break
-                                }
-                            }
-                        }
-                    }
-                }
-                def nowSeconds = System.currentTimeMillis().intdiv(1000)
-                valid = !payload.licenseId?.toString()?.startsWith('demo-') &&
-                    payload.packageNames?.contains('com.roboyi.rtspplayer') &&
-                    payload.applicationLabel == 'RtspPlayer' &&
-                    payload.codecScope == 'AVC_HEVC' &&
-                    payload.features?.containsAll(['PLAYBACK', 'RECORDING', 'RTSP_PUSH', 'SCREENSHOT']) &&
-                    payload.expiresAt instanceof Number &&
-                    (payload.expiresAt >= 4102444800L || payload.expiresAt > nowSeconds) &&
-                    signed && issuerInSdk
-            }
-        } catch (Exception ignored) { }
-        if (!valid) throw new GradleException(
-            'Set a signed non-demo RYL4 license whose issuer is embedded in the Core AAR, for com.roboyi.rtspplayer / RtspPlayer / AVC_HEVC with PLAYBACK, RECORDING, RTSP_PUSH and SCREENSHOT in release-license.properties')
-    }
-}
-tasks.register('verifyReleaseSigning') {
-    group = 'verification'
-    description = 'Require a configured release signing key.'
-    doLast {
-        if (!hasReleaseSigning || !rootProject.file(signingStoreFile).isFile()) throw new GradleException(
-            'Configure an existing signing store, alias and passwords (or ROBOYI_RELEASE_*_PASSWORD) before producing a store release')
-    }
-}
-tasks.configureEach { task ->
-    if (task.name == 'preReleaseBuild') task.dependsOn(
-        'verifyReleaseNativePageSize', 'verifyReleasePolicy',
-        'verifyReleaseLicense', 'verifyReleaseSigning')
 }

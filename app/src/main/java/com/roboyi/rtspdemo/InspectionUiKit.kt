@@ -79,7 +79,7 @@ internal class InspectionUiKit(val activity: Activity) {
         }
         return Screen(dialog, body, footer)
     }
-    /** SeekBar handles the common range, with an exact-value dialog for the full range. */
+    /** Separate the value header from the stepper row, with spacing between slider groups. */
     inner class Slider(title: String, initial: Int, private val low: Int, private val high: Int,
                        private val unit: String = "", private val changed: (Int) -> Unit) {
         val view = column()
@@ -90,19 +90,37 @@ internal class InspectionUiKit(val activity: Activity) {
         var value = initial.coerceIn(low, high); private set
         private var syncing = false
         init {
+            view.setPadding(0, dp(4), 0, dp(12))
+            valueButton.apply {
+                textSize = 13f; minHeight = dp(32); minimumHeight = dp(32)
+                setPadding(dp(10), 0, dp(10), 0); includeFontPadding = false
+                setSingleLine(true); gravity = Gravity.CENTER
+                setTypeface(typeface, Typeface.BOLD); setTextColor(blue)
+                background = shape(Color.rgb(29, 47, 66), Color.rgb(52, 78, 106))
+                stateListAnimator = null
+                contentDescription = "$title，点击数值精确输入"
+            }
+            // Reserve enough width for the largest value so the label never jumps while adjusting.
+            val valueWidth = maxOf(dp(64), kotlin.math.ceil(valueButton.paint.measureText("$high$unit")).toInt() + dp(24))
             view.addView(row().apply {
                 addView(label(title, 12f, muted), LinearLayout.LayoutParams(0, -2, 1f))
-                addView(valueButton)
+                addView(valueButton, LinearLayout.LayoutParams(valueWidth, dp(32)).apply { marginStart = dp(8) })
             })
-            valueButton.textSize = 12f; valueButton.minHeight = dp(32); valueButton.minimumHeight = dp(32)
+            listOf(decrease, increase).forEach { control ->
+                control.apply {
+                    textSize = 20f; setPadding(0, 0, 0, 0); includeFontPadding = false
+                    gravity = Gravity.CENTER; setTextColor(blue); stateListAnimator = null
+                }
+            }
             view.addView(row().apply {
                 addView(decrease, LinearLayout.LayoutParams(dp(42), dp(42)))
-                addView(seek, LinearLayout.LayoutParams(0, dp(30), 1f))
+                addView(seek, LinearLayout.LayoutParams(0, dp(42), 1f).apply {
+                    marginStart = dp(8); marginEnd = dp(8)
+                })
                 addView(increase, LinearLayout.LayoutParams(dp(42), dp(42)))
-            })
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
             decrease.contentDescription = "$title 减少 1$unit"
             increase.contentDescription = "$title 增加 1$unit"
-            decrease.textSize = 20f; increase.textSize = 20f
             seek.progressTintList = android.content.res.ColorStateList.valueOf(blue)
             seek.thumbTintList = android.content.res.ColorStateList.valueOf(blue)
             fun update(v: Int) { valueButton.text = "$v$unit" }

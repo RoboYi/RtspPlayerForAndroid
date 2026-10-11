@@ -1,5 +1,7 @@
 # 隐私披露与商业授权工程复核（2026-09-21）
 
+> 2026-10-11 更新：本文为历史上架检查资料。当前 Demo 已移除全部 Gradle 发布门禁，发布配置不影响试用构建；应用为 com.roboyi.rtspplayer / RtspPlayer / 1.0.5。历史版本、哈希和阻断项不代表当前状态，旧门禁命令不再适用。请使用 [当前发布说明](RELEASING.md)。
+
 范围：国内安卓应用商店首发，App `com.roboyi.rtspdemo` / 默认应用名 `RtspPlayer`，两份 `V1.0.2-Beta` AVC+HEVC AAR，SDK 源码 `E:\RoboYi_Code\RtspPlayer_SDK`。依据当前源码、调试包合并 Manifest、AAR 内容及现有发布证据。没有正式 release APK 或真机抓包，联网行为结论仍需动态验证。工程修正后的操作与剩余人工事项见 `CN_STORE_RELEASE_HANDOFF.md`。
 
 ## 一、代码实际处理的数据

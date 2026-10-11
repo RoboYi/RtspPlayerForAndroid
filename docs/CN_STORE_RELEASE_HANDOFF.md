@@ -1,5 +1,7 @@
 # 国内安卓商店正式包交付手册
 
+> 2026-10-11 更新：本文为历史上架检查资料。当前 Demo 已移除全部 Gradle 发布门禁，发布配置不影响试用构建；应用为 com.roboyi.rtspplayer / RtspPlayer / 1.0.5。历史版本、哈希和阻断项不代表当前状态，旧门禁命令不再适用。请使用 [当前发布说明](RELEASING.md)。
+
 个人开发者上架时，先阅读 `docs/INDIVIDUAL_CN_STORE_RELEASE_GUIDE.md`；其中包含个人主体可用渠道、软著、个人 APP 备案及本工程特有缺口。
 
 本手册对应 App `com.roboyi.rtspdemo`、默认标签 `RtspPlayer`、版本号 `3 / 1.0.2-Beta` 和两份 `V1.0.2-Beta` AVC+HEVC AAR。执行正式签发或提交前，先固定是否保留 `Beta` 版本显示，以及最终上架主体和具体商店。任何包名、默认应用标签、AAR 或 codec 范围变更，都要重新核对授权与商业审批。
@@ -15,7 +17,7 @@
 ```powershell
 # 在 E:\RoboYi_Code\RtspPlayer_Demo 运行；填完本地配置后检查门禁。
 Copy-Item release-policy.properties.example release-policy.properties
-.\gradlew.bat :app:verifyReleasePolicy --offline --console=plain
+# 当前版本无 verifyReleasePolicy 任务，隐私信息为可选构建配置。
 ```
 
 政策和权限自查参照[网信办 App 个人信息认定方法](https://www.cac.gov.cn/2019-12/27/c_1578986455686625.htm)与[个人信息保护法](https://www.npc.gov.cn/npc/c2/c30834/202108/t20210820_313088.html)。
@@ -103,7 +105,7 @@ keytool -list -v -storetype PKCS12 -keystore E:\roboyi-keys\roboyi_rtsp_apkstore
 
 ```powershell
 # 在 E:\RoboYi_Code\RtspPlayer_Demo 运行。
-.\gradlew.bat :domain:test :app:verifyReleaseNativePageSize :app:assembleRelease --offline --console=plain
+.\gradlew.bat :app:assembleRelease --offline --console=plain
 # 成功后检查 app\build\outputs\apk\release\RoboYiPlayer-1.0.2-Beta.apk。
 ```
 

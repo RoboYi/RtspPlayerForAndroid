@@ -4,11 +4,9 @@ import android.content.Context
 import android.graphics.*
 import android.view.MotionEvent
 import android.view.View
-import com.roboyi.rtsp.OverlayItem
 import com.roboyi.rtsp.WatermarkBitmapFactory
 import com.roboyi.rtsp.WatermarkSpec
 import com.roboyi.rtspdemo.data.InspectionRule
-import kotlin.math.ceil
 
 internal data class InspectionPreviewItem(val key: String, val text: String, val rule: InspectionRule)
 
@@ -47,19 +45,13 @@ internal class InspectionOsdPreview(context: Context, private val frame: Bitmap?
             for (n in 1..9) { canvas.drawLine(n * 128f, 0f, n * 128f, 720f, paint); canvas.drawLine(0f, n * 72f, 1280f, n * 72f, paint) }
         }
         val visible = items.filter { it.rule.enabled }
+        val layers = visible.map { i -> InspectionWatermarkRenderer.item(i.key, i.text, i.rule, videoWidth, videoHeight) }
         if (visible.isNotEmpty()) WatermarkBitmapFactory.drawFullFrame(context, canvas, videoWidth, videoHeight,
-            WatermarkSpec(text = "", showText = false, showOverlay = false, overlayItems = visible.map { i ->
-                OverlayItem.Text(id = i.key, x = i.rule.x / 100f, y = i.rule.y / 100f, text = i.text,
-                    textSizeSp = i.rule.size, textColor = i.rule.color, backgroundColor = i.rule.background,
-                    shadowColor = Color.TRANSPARENT, includeTimestamp = false, alpha = i.rule.opacity)
-            }), false)
+            WatermarkSpec(text = "", showText = false, showOverlay = false, overlayItems = layers), false)
         bounds.clear()
-        val metric = (minOf(videoWidth, videoHeight) / 720f).coerceAtLeast(.25f)
-        visible.forEach { item ->
-            paint.style = Paint.Style.FILL; paint.textSize = item.rule.size * metric
-            while (paint.textSize > 8 * metric && paint.measureText(item.text) + 20 * metric > videoWidth * .92f) paint.textSize *= .92f
-            val w = ceil((paint.measureText(item.text) + 20 * metric).toDouble()).toFloat()
-            val h = ceil((paint.fontMetrics.descent - paint.fontMetrics.ascent + 12 * metric).toDouble()).toFloat()
+        visible.zip(layers).forEach { (item, layer) ->
+            val w = layer.width * videoWidth
+            val h = layer.height * videoHeight
             val x = (item.rule.x / 100f * videoWidth).coerceIn(0f, (videoWidth - w).coerceAtLeast(0f))
             val y = (item.rule.y / 100f * videoHeight).coerceIn(0f, (videoHeight - h).coerceAtLeast(0f))
             bounds[item.key] = RectF(x, y, x + w, y + h)

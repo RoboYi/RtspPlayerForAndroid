@@ -20,7 +20,7 @@
     <string name="username">用户名</string>
     <string name="password">密码</string>
     <string name="search_devices">搜索设备</string>
-    <string name="discovery_description">自动搜索 ONVIF；未发现设备时搜索海康威视设备。可能需要登录凭据。</string>
+    <string name="discovery_description">先组播发现 ONVIF，零结果时通过 HTTP 探测局域网；可修正扫描范围。</string>
     <string name="rtsp_hint">rtsp://摄像机地址/码流</string>
     <string name="connect">连接</string>
     <string name="camera_push">摄像头推流</string>
@@ -175,7 +175,7 @@
     <string name="url_filled">已填入地址，点击连接。</string>
     <string name="clear_history_prompt">清除连接历史？</string>
     <string name="clear">清除</string>
-    <string name="onvif_initial_hint">自动搜索局域网。海康威视 HTTP 搜索可能需要登录凭据。</string>
+    <string name="onvif_initial_hint">先组播发现，零结果时自动探测 ONVIF 网段。扫描范围留空时自动获取。</string>
     <string name="searching_devices">正在搜索设备…</string>
     <string name="devices_found">发现 %1$d 台设备 · 点击设备查看详情</string>
     <string name="search_again">再次搜索设备</string>
@@ -281,11 +281,11 @@
     <string name="default_credentials_title">默认摄像机凭据</string>
     <string name="default_credentials_notice">账号和密码都留空时，内置设备发现 SDK 可能向局域网内发现的设备尝试 admin/admin。请仅搜索获准访问的摄像机。如需使用自己的凭据，请先填写再搜索。</string>
     <string name="privacy_notice_title">隐私与本地数据</string>
-    <string name="privacy_notice_body">本应用连接您选定的 RTSP 摄像机，并在局域网搜索 ONVIF 摄像机。普通 RTSP 和 ONVIF HTTP 流量可能未加密；您输入的摄像机凭据可能发送到这些摄像机。选择麦克风声音时，仅在录像期间采集麦克风并写入本地视频。上次尝试连接的地址及最多 10 条成功连接地址（包括网址中的凭据或令牌）在本机加密保存，可在“历史记录”中清除。录像、截图和导入的水印图片保存在应用存储空间，可在应用内删除。卸载应用会删除其本地数据。</string>
+    <string name="privacy_notice_body">本应用连接您选定的 RTSP/ONVIF 设备，组播无结果时可探测局域网。摄像机凭据可能发送给候选设备；普通 RTSP/HTTP 流量可能未加密。摄像头用于您主动开启的设备推流；麦克风仅在选择该音源录像时采集。最近连接地址（最多 10 条成功记录和上次尝试地址）在本机加密保存。项目、任务、缺陷和水印保存在本机。录像、截图和 XML 可写入公共目录 DCIM/RoboYiPlayer，公共文件可能在卸载后保留。权限、删除和共享方式请阅读完整隐私政策。</string>
     <string name="privacy_operator_label">运营主体：%1$s</string>
     <string name="privacy_contact_label">隐私联系邮箱：%1$s</string>
     <string name="privacy_delete_local_data">删除本地数据并撤回同意</string>
-    <string name="privacy_delete_local_data_confirm">停止播放并删除连接历史、录像、截图、导入的水印图片和文字？此操作不可撤销。应用将关闭，下次启动会重新显示隐私告知。</string>
+    <string name="privacy_delete_local_data_confirm">停止播放和摄像头推流，删除连接历史、可删除的录像截图、水印、检查项目和私有备份？此操作不可撤销。已导出的公共 XML 和应用无法删除的文件需通过文件管理器删除。应用将关闭，下次启动重新显示隐私告知。</string>
     <string name="privacy_wait_for_search">请等待设备搜索结束后重试。</string>
     <string name="privacy_delete_failed">无法撤回同意，请重试。</string>
     <string name="privacy_delete_partial">已撤回同意，但部分本地数据未能删除。请检查应用存储空间或卸载应用。</string>
@@ -449,4 +449,19 @@
     <string name="push_service_failed">推流失败：%1$s</string>
     <string name="onvif_exit_control">退出控制</string>
     <string name="stream_playing_and_saved">正在播放码流，连接成功后地址会加入播放历史。</string>
+    <string name="onvif_scan_range_label">兜底扫描范围 · 可选，IPv4/前缀长度</string>
+    <string name="onvif_scan_range_hint">自动获取，例如 192.168.1.0/23</string>
+    <string name="onvif_scan_range_invalid">请输入 IPv4/前缀长度，例如 192.168.1.0/23，或留空自动获取。</string>
+    <string name="onvif_cancel_search">取消搜索</string>
+    <string name="onvif_multicast_searching">正在通过组播发现 ONVIF 设备…</string>
+    <string name="onvif_subnet_searching">组播无结果，正在探测 %1$s · 已发现 %2$d 台…</string>
+    <string name="onvif_search_cancelled">搜索已取消 · 保留 %1$d 台设备。</string>
+    <string name="onvif_search_timeout">扫描达到时间上限 · 保留 %1$d 台设备。%2$s 尚未扫描完，可缩小范围后重试。</string>
+    <string name="onvif_range_unavailable">无法获取可用的 Wi-Fi/有线 IPv4 网段。请填写摄像机所在的实际网段后重试。</string>
+    <string name="onvif_range_mismatch">系统返回的 %1$s 不包含已连接过的摄像机。请核对实际局域网范围并在上方修正。</string>
+    <string name="onvif_range_too_large">%1$s 超过 1024 个地址。请填写较小范围，分批搜索。</string>
+    <string name="onvif_search_error">设备搜索失败，请检查网络后重试。</string>
+    <string name="onvif_search_empty">在 %1$s 未发现已确认的 ONVIF 设备。请核对实际网段、ONVIF 服务及账号。</string>
+    <string name="onvif_auth_candidates">%1$d 个地址返回认证响应，但未确认 ONVIF 内容。可检查账号；这些地址不会列为设备。</string>
+    <string name="privacy_wait_for_recording">请先结束录像并等待文件保存完成，再删除本地数据。</string>
 </resources>

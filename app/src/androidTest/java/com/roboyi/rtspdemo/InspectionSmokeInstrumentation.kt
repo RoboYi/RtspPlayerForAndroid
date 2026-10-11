@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.Instrumentation
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Bundle
 import com.roboyi.rtspdemo.data.*
 import java.io.File
@@ -45,10 +47,11 @@ class InspectionSmokeInstrumentation : Instrumentation() {
             check(store().defectDisplaySeconds() == 12)
             check(reopened.selectedProject()?.id == project.id && reopened.selectedTask()?.id == task.id)
             check(reopened.fields("task").size == 24 && reopened.fields("project").size == 14 && reopened.fields("defect").size == 14)
-            check(InspectionRule.from(JSONObject()).opacity == 1f)
-            check(InspectionRule.from(JSONObject().put("opacity", 2)).opacity == 1f)
-            check(InspectionRule.from(JSONObject().put("opacity", -1)).opacity == 0f)
-            val transparentRule = reopened.rule("project.name").copy(background = 0, opacity = .4f)
+            check(InspectionRule.from(JSONObject()).let { it.textOpacity == 1f && it.backgroundOpacity == 1f })
+            check(InspectionRule.from(JSONObject().put("opacity", .4)).let { it.textOpacity == .4f && it.backgroundOpacity == .4f })
+            check(InspectionRule.from(JSONObject().put("textOpacity", 2).put("backgroundOpacity", -1))
+                .let { it.textOpacity == 1f && it.backgroundOpacity == 0f })
+            val transparentRule = reopened.rule("project.name").copy(background = 0, textOpacity = .4f, backgroundOpacity = .8f)
             check(InspectionRule.from(transparentRule.json()) == transparentRule)
             reopened.saveRule("project.name", transparentRule)
             check(store().rule("project.name") == transparentRule)
@@ -69,7 +72,24 @@ class InspectionSmokeInstrumentation : Instrumentation() {
             check(doc.getElementsByTagName("defect").length == 1)
             check(doc.documentElement.textContent.contains("A&B公司"))
             check(restored.rules.getValue("project.name") == transparentRule)
-            check(xml.contains("opacity=\"${transparentRule.json().get("opacity")}\""))
+            check(xml.contains("textOpacity=\"${transparentRule.json().get("textOpacity")}\""))
+            check(xml.contains("backgroundOpacity=\"${transparentRule.json().get("backgroundOpacity")}\""))
+            fun pixels(bitmap: Bitmap) = IntArray(bitmap.width * bitmap.height).also {
+                bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            }
+            fun rendered(textOpacity: Float, backgroundOpacity: Float, background: Int = Color.BLACK) =
+                InspectionWatermarkRenderer.item("alpha-check", "OSD", InspectionRule(
+                    textOpacity = textOpacity, backgroundOpacity = backgroundOpacity, background = background), 1280, 720).bitmap
+            val backgroundOnly = pixels(rendered(0f, 1f))
+            check(backgroundOnly.any { Color.alpha(it) == 255 })
+            check(backgroundOnly.all { Color.red(it) == 0 }) // Invisible text cannot lighten the black background.
+            val textOnly = pixels(rendered(1f, 0f))
+            check(textOnly.any { Color.alpha(it) == 255 && Color.red(it) == 255 })
+            check(textOnly.any { Color.alpha(it) == 0 })
+            check(pixels(rendered(0f, .25f)).maxOf { Color.alpha(it) } == 64)
+            check(pixels(rendered(0f, 1f, Color.TRANSPARENT)).all { Color.alpha(it) == 0 })
+            check(pixels(rendered(0f, 0f)).all { Color.alpha(it) == 0 })
+            check(rendered(1f, 0f) === rendered(1f, 0f))
             reopened.select(null)
             check(reopened.newSession().video.matches(Regex("\\d{14}/\\d{14}(?:_\\d+)?\\.mp4")))
             val startRule = InspectionRule(mode = "start", startSeconds = 5)
@@ -82,7 +102,7 @@ class InspectionSmokeInstrumentation : Instrumentation() {
             check(InspectionUi.COLOR_GROUPS.map { it.first } == listOf("黑", "白", "红", "橙", "黄", "绿", "蓝", "靛", "紫"))
             check(InspectionUi.COLOR_GROUPS.all { it.second.size == 3 })
             check(InspectionUi.COLORS.size == 27 && InspectionUi.COLORS.distinct().size == 27)
-            "PASS: stable template keys and limits; independent defect rules/duration; project/task selection; frozen metadata; XML hierarchy; paths; time boundaries; 27 colors; transparent background and opacity persistence."
+            "PASS: metadata, paths and time boundaries; 27 colors; separate text/background opacity rendering and persistence; legacy opacity migration; bitmap cache."
         }
         finish(if (result.isSuccess) Activity.RESULT_OK else Activity.RESULT_CANCELED,
             Bundle().apply { putString("stream", result.getOrElse { "FAIL: ${it.stackTraceToString()}" }) })

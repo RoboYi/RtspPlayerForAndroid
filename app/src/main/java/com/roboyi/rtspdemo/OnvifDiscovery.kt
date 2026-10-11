@@ -5,16 +5,20 @@ import com.roboyi.rtsp.CameraDetails
 import com.roboyi.rtsp.CameraDevice
 import com.roboyi.rtsp.CameraDiscovery
 import com.roboyi.rtsp.OnvifCredentials
+import com.roboyi.rtsp.CameraSearchHandle
+import com.roboyi.rtsp.CameraSearchOptions
+import com.roboyi.rtsp.CameraSearchUpdate
 
 /** 网络发现与设备信息获取均由 SDK 完成；demo 仅适配回调。 */
 internal class OnvifDiscovery(private val context: Context) {
-    fun search(credentials: OnvifCredentials, onResult: (List<CameraDevice>) -> Unit) {
-        // 兼容当前内置 AAR：SDK 的海康兜底搜索在两个输入都为空时使用 admin/admin。
+    fun search(credentials: OnvifCredentials, options: CameraSearchOptions, onUpdate: (CameraSearchUpdate) -> Unit): CameraSearchHandle {
         val searchCredentials = if (credentials.username.isEmpty() && credentials.password.isEmpty()) {
             OnvifCredentials(username = "admin", password = "admin")
         } else credentials
-        CameraDiscovery.search(context, searchCredentials, onResult)
+        return CameraDiscovery.search(context, searchCredentials, options, onUpdate)
     }
+
+    fun clearHistory() = CameraDiscovery.clearDiscoveryHistory()
 
     fun inspect(device: CameraDevice, credentials: OnvifCredentials, onResult: (CameraDetails) -> Unit) =
         CameraDiscovery.inspect(device, credentials, onResult)

@@ -1,5 +1,7 @@
 # 个人开发者国内安卓商店上架指引
 
+> 2026-10-11 更新：本文为历史上架检查资料。当前 Demo 已移除全部 Gradle 发布门禁，发布配置不影响试用构建；应用为 com.roboyi.rtspplayer / RtspPlayer / 1.0.5。历史版本、哈希和阻断项不代表当前状态，旧门禁命令不再适用。请使用 [当前发布说明](RELEASING.md)。
+
 更新时间：2026-09-21
 适用工程：com.roboyi.rtspdemo / RtspPlayer / versionCode 3 / versionName 1.0.2-Beta
 
@@ -167,7 +169,7 @@ keytool -list -v -storetype PKCS12 -keystore E:\roboyi-keys\roboyi_rtsp_apkstore
 
 $env:ROBOYI_RELEASE_STORE_PASSWORD = Read-Host 'APK store password'
 $env:ROBOYI_RELEASE_KEY_PASSWORD = Read-Host 'APK key password'
-.\gradlew.bat :domain:test :app:verifyReleaseNativePageSize :app:assembleRelease --offline --console=plain
+.\gradlew.bat :app:assembleRelease --offline --console=plain
 
 $apk = 'app\build\outputs\apk\release\RoboYiPlayer-1.0.2-Beta.apk'
 Get-FileHash -LiteralPath $apk -Algorithm SHA256

@@ -1,7 +1,7 @@
-# Copy to release-policy.properties and fill in the actual publishing entity and public policy URL.
+# Optional local publishing metadata. Demo builds work without this file.
 privacyOperator=
 privacyPolicyUrl=
 # A working mailbox controlled by the publishing entity; shown in the app.
 privacyContactEmail=
 # Update when the published policy changes materially so existing users see the notice again.
-privacyPolicyVersion=2026-09-21
+privacyPolicyVersion=2026-10-11

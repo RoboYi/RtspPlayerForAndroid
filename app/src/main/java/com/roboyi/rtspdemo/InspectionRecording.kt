@@ -17,7 +17,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-internal class InspectionRecording(private val context: Context) {
+internal class InspectionRecording(private val context: Context,
+                                   private val videoSize: () -> Pair<Int, Int> = { 1280 to 720 }) {
     val store = InspectionStore.get(context)
     val repository = AppCaptureRepository(context)
     var session: InspectionSession? = null
@@ -70,6 +71,9 @@ internal class InspectionRecording(private val context: Context) {
         val task = current?.task ?: if (current == null && session == null) store.selectedTask() else null
         val fields = current?.fields ?: InspectionStore.BASE_FIELDS.keys.associateWith(store::fields)
         val rules = current?.rules ?: store.allRuleKeys().associateWith(store::rule)
+        val (videoWidth, videoHeight) = videoSize()
+        fun textItem(id: String, text: String, rule: InspectionRule) =
+            InspectionWatermarkRenderer.item("inspection_$id", text, rule, videoWidth, videoHeight)
         val items = mutableListOf<OverlayItem>()
         val remaining = if (current === session) remainingMs() else null
         fun addInfo(scope: String, info: InspectionInfo?, definitions: List<InfoField>, sourceRules: Map<String, InspectionRule>, elapsed: Long, remaining: Long?) {
@@ -98,10 +102,6 @@ internal class InspectionRecording(private val context: Context) {
             backgroundColor = Color.TRANSPARENT, shadowColor = Color.TRANSPARENT, includeTimestamp = false, alpha = 0f)
         return WatermarkSpec(text = "", showText = false, showOverlay = false, overlayItems = items)
     }
-    private fun textItem(id: String, text: String, rule: InspectionRule) = OverlayItem.Text(
-        id = "inspection_$id", x = rule.x / 100f, y = rule.y / 100f, text = text, textSizeSp = rule.size,
-        textColor = rule.color, backgroundColor = rule.background, shadowColor = Color.TRANSPARENT,
-        includeTimestamp = false, alpha = rule.opacity, zIndex = 20)
     fun activateDefect(info: InspectionInfo, seconds: Int) {
         defect = info; defectUntilMs = SystemClock.elapsedRealtime() + seconds * 1000L
         defectFields = store.fields("defect"); defectRules = store.allRuleKeys().filter { it.startsWith("defect.") }

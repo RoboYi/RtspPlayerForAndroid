@@ -8,9 +8,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.roboyi.rtsp.DecoderMode
 import com.roboyi.rtsp.CameraDevice
+import com.roboyi.rtsp.CameraSearchPhase
+import com.roboyi.rtsp.CameraSearchEnd
+import com.roboyi.rtsp.CameraSearchUpdate
 import com.roboyi.rtsp.DigitalZoom
 import com.roboyi.rtsp.VideoCropRegion
 import com.roboyi.rtspdemo.data.AppCaptureRepository
+import com.roboyi.rtspdemo.data.InspectionStore
 import com.roboyi.rtspdemo.data.SharedPreferencesConnectionHistory
 import com.roboyi.rtspdemo.data.SecureConnectionStore
 import com.roboyi.rtspdemo.domain.CaptureLibrary
@@ -25,9 +29,10 @@ internal enum class PlaybackPhase { STOPPED, CONNECTING, PLAYING }
 internal data class LocalDataDeletionResult(
     val capturesRequested: Int,
     val capturesDeleted: Int,
-    val watermarkDeleted: Boolean
+    val watermarkDeleted: Boolean,
+    val inspectionDataDeleted: Boolean
 ) {
-    val complete: Boolean get() = capturesRequested == capturesDeleted && watermarkDeleted
+    val complete: Boolean get() = capturesRequested == capturesDeleted && watermarkDeleted && inspectionDataDeleted
 }
 
 internal data class MainUiState(
@@ -232,6 +237,7 @@ internal class MainViewModel(
     fun deleteLocalData(): LocalDataDeletionResult {
         val (captureCount, deleted) = captureLibrary.deleteAll()
         val imageDeleted = deleteWatermarkImage()
+        val inspectionDeleted = InspectionStore.get(appContext).clearLocalData(appContext)
         clearHistory()
         check(prefs.edit().remove("watermark_text").commit()) {
             "Could not clear local watermark text"
@@ -244,7 +250,7 @@ internal class MainViewModel(
             onvifHint = appContext.getString(R.string.onvif_initial_hint)
         ) }
         refreshCaptures()
-        return LocalDataDeletionResult(captureCount, deleted, imageDeleted)
+        return LocalDataDeletionResult(captureCount, deleted, imageDeleted, inspectionDeleted)
     }
 
     fun showSection(section: MainSection) = update { it.copy(section = section) }
@@ -269,16 +275,32 @@ internal class MainViewModel(
         onvifDevices = emptyList<CameraDevice>()
     ) }
 
-    fun onOnvifSearchFinished(devices: List<CameraDevice>) = update { it.copy(
-        onvifSearching = false,
-        onvifSearchCompleted = true,
-        onvifHint = appContext.getString(R.string.devices_found, devices.size),
-        onvifDevices = devices
-    ) }
+    fun onOnvifSearchUpdate(result: CameraSearchUpdate) {
+        val ranges = result.reportedSubnets.joinToString(", ")
+        val hint = when (result.phase) {
+            CameraSearchPhase.MULTICAST -> appContext.getString(R.string.onvif_multicast_searching)
+            CameraSearchPhase.SUBNET -> appContext.getString(R.string.onvif_subnet_searching, ranges, result.devices.size)
+            CameraSearchPhase.FINISHED -> when (result.end) {
+                CameraSearchEnd.CANCELLED -> appContext.getString(R.string.onvif_search_cancelled, result.devices.size)
+                CameraSearchEnd.TIMED_OUT -> appContext.getString(R.string.onvif_search_timeout, result.devices.size, ranges)
+                CameraSearchEnd.RANGE_UNAVAILABLE -> appContext.getString(R.string.onvif_range_unavailable)
+                CameraSearchEnd.RANGE_MISMATCH -> appContext.getString(R.string.onvif_range_mismatch, ranges)
+                CameraSearchEnd.RANGE_TOO_LARGE -> appContext.getString(R.string.onvif_range_too_large, ranges)
+                CameraSearchEnd.FAILED -> appContext.getString(R.string.onvif_search_error)
+                else -> if (result.devices.isEmpty()) appContext.getString(R.string.onvif_search_empty, ranges)
+                    else appContext.getString(R.string.devices_found, result.devices.size)
+            }
+        }
+        update { it.copy(
+            onvifSearching = result.phase != CameraSearchPhase.FINISHED,
+            onvifSearchCompleted = result.phase == CameraSearchPhase.FINISHED,
+            onvifHint = hint + if (result.phase == CameraSearchPhase.FINISHED && result.devices.isEmpty() && result.authenticationCandidates > 0) "\n" + appContext.getString(R.string.onvif_auth_candidates, result.authenticationCandidates) else "",
+            onvifDevices = result.devices
+        ) }
+    }
 
     fun setOnvifHint(hint: String) = update { it.copy(
-        onvifHint = hint,
-        onvifSearching = false
+        onvifHint = hint
     ) }
 
     class Factory(context: Context) : ViewModelProvider.Factory {

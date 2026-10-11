@@ -97,6 +97,29 @@
                     android:textColor="@color/ink"
                     android:textColorHint="@color/muted" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/onvif_scan_range_label"
+                    android:textColor="@color/muted"
+                    android:textSize="12sp" />
+
+                <EditText
+                    android:id="@+id/onvif_scan_range"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/outline_button"
+                    android:hint="@string/onvif_scan_range_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="textUri"
+                    android:paddingHorizontal="12dp"
+                    android:saveEnabled="false"
+                    android:singleLine="true"
+                    android:textColor="@color/ink"
+                    android:textColorHint="@color/muted" />
+
                 <Button
                     android:id="@+id/search_button"
                     android:layout_width="match_parent"

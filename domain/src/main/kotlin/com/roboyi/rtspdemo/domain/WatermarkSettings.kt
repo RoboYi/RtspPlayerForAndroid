@@ -15,10 +15,8 @@ data class WatermarkSettings(
     val applyScreenshot: Boolean = true,
     val applyRecording: Boolean = true
 ) {
-    /** 仅在文字和图片都没有时使用应用名，避免静默生成无水印内容。 */
-    fun effectiveText(defaultText: String): String = text.trim().ifEmpty {
-        if (imagePath == null) defaultText else ""
-    }
+    /** 未填写文字时不生成默认文字水印。 */
+    fun effectiveText(): String = text.trim()
 
     fun appliesTo(target: WatermarkTarget): Boolean = when (target) {
         WatermarkTarget.PREVIEW -> applyPreview

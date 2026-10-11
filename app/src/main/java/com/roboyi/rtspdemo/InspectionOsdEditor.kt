@@ -136,10 +136,13 @@ internal class InspectionOsdEditor(
             listOf(rule().color, rule().background).forEach { color -> swatches.addView(ui.label(if (Color.alpha(color) == 0) "透明" else String.format("#%06X", color and 0xFFFFFF), 11f).apply {
                 setBackgroundColor(color); setTextColor(if (Color.red(color) + Color.green(color) + Color.blue(color) > 430) Color.BLACK else Color.WHITE)
             }, LinearLayout.LayoutParams(0, -2, 1f)) }
-            properties.addView(ui.Slider("OSD 透明度", ((1f - rule().opacity) * 100f).roundToInt(), 0, 100, "%") {
-                update(rule().copy(opacity = 1f - it / 100f))
+            properties.addView(ui.Slider("文字透明度", ((1f - rule().textOpacity) * 100f).roundToInt(), 0, 100, "%") {
+                update(rule().copy(textOpacity = 1f - it / 100f))
             }.view)
-            properties.addView(ui.label("0% 不透明，100% 完全透明；文字与背景一起生效。透明背景不影响文字。", 11f, ui.muted))
+            properties.addView(ui.Slider("背景透明度", ((1f - rule().backgroundOpacity) * 100f).roundToInt(), 0, 100, "%") {
+                update(rule().copy(backgroundOpacity = 1f - it / 100f))
+            }.view)
+            properties.addView(ui.label("0% 不透明，100% 完全透明；文字与背景分别生效。选择透明背景后不显示底色。", 11f, ui.muted))
             if (selected == "time") {
                 properties.addView(ui.label("时间格式（可自定义）", 12f, ui.muted))
                 properties.addView(ui.input(rule().timeFormat).apply { addTextChangedListener(object : TextWatcher {
@@ -212,9 +215,9 @@ internal class InspectionOsdEditor(
         dialog.show()
     }
     private fun applyAll() {
-        val labels = mutableListOf("文字大小", "文字颜色", "背景颜色", "是否显示", "X / Y 位置", "OSD 透明度")
+        val labels = mutableListOf("文字大小", "文字颜色", "背景颜色", "是否显示", "X / Y 位置", "文字透明度", "背景透明度")
         if (!defectMode) labels += "录像时段"
-        val checked = BooleanArray(labels.size) { it < 3 || it == 5 }
+        val checked = BooleanArray(labels.size) { it < 3 || it == 5 || it == 6 }
         AlertDialog.Builder(activity).setTitle("应用到${if (defectMode) "全部缺陷字段" else "项目 / 任务 / 时间"}")
             .setMultiChoiceItems(labels.toTypedArray(), checked) { _, index, value -> checked[index] = value }
             .setNegativeButton("取消", null).setPositiveButton("应用") { _, _ ->
@@ -227,8 +230,9 @@ internal class InspectionOsdEditor(
                         if (checked[2]) target = target.copy(background = source.background)
                         if (checked[3]) target = target.copy(enabled = source.enabled)
                         if (checked[4]) target = target.copy(x = source.x, y = source.y)
-                        if (checked[5]) target = target.copy(opacity = source.opacity)
-                        if (!defectMode && checked[6]) target = target.copy(mode = source.mode, startSeconds = source.startSeconds, endSeconds = source.endSeconds)
+                        if (checked[5]) target = target.copy(textOpacity = source.textOpacity)
+                        if (checked[6]) target = target.copy(backgroundOpacity = source.backgroundOpacity)
+                        if (!defectMode && checked[7]) target = target.copy(mode = source.mode, startSeconds = source.startSeconds, endSeconds = source.endSeconds)
                         drafts[key] = target
                     }
                     dirty = true; renderList(); renderProperties(); redraw()

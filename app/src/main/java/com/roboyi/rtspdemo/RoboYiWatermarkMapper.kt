@@ -15,11 +15,10 @@ internal object RoboYiWatermarkMapper {
         context: Context,
         settings: WatermarkSettings,
         target: WatermarkTarget,
-        defaultText: String,
         fullFrameBitmap: Bitmap? = null
     ): WatermarkSpec {
         if (!settings.appliesTo(target)) return WatermarkSpec.NONE
-        val text = settings.effectiveText(defaultText)
+        val text = settings.effectiveText()
         val osdSpec = WatermarkSpec(
             text = text,
             textSizeSp = settings.textSizeSp,

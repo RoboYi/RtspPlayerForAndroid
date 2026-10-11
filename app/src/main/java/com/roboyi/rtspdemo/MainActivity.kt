@@ -57,6 +57,11 @@ import androidx.lifecycle.lifecycleScope
 import com.roboyi.rtsp.CameraDetails
 import com.roboyi.rtsp.CameraDevice
 import com.roboyi.rtsp.CameraSource
+import com.roboyi.rtsp.CameraSearchHandle
+import com.roboyi.rtsp.CameraSearchOptions
+import com.roboyi.rtsp.CameraSearchPhase
+import com.roboyi.rtsp.CameraSearchEnd
+import com.roboyi.rtsp.CameraSearchUpdate
 import com.roboyi.rtsp.DecoderMode
 import com.roboyi.rtsp.DigitalZoom
 import com.roboyi.rtsp.OnvifCredentials
@@ -112,7 +117,11 @@ class MainActivity : AppCompatActivity() {
     )
 
     private lateinit var viewModel: MainViewModel
-    private val inspection by lazy { InspectionRecording(applicationContext) }
+    private val inspection by lazy { InspectionRecording(applicationContext) {
+        val size = Regex("""^(\d+)x(\d+)""").find(player?.streamInfoText().orEmpty())
+        (size?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 } ?: 1280) to
+            (size?.groupValues?.get(2)?.toIntOrNull()?.takeIf { it > 0 } ?: 720)
+    } }
     private val inspectionUi by lazy { InspectionUi(this) { updateCurrentWatermark() } }
     private var pendingFolderAction: (() -> Unit)? = null
     private var recordingEndAction: (() -> Unit)? = null
@@ -153,6 +162,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private val onvif by lazy { OnvifDiscovery(applicationContext) }
+    private var cameraSearchHandle: CameraSearchHandle? = null
     private val handler = Handler(Looper.getMainLooper())
     // 只在前台轮询状态；SDK 的播放与录像回调仍由播放器管理。
     private val statusTick = object : Runnable {
@@ -242,6 +252,7 @@ class MainActivity : AppCompatActivity() {
     private var deviceResultsCollapsed = false
     private var deviceSearchVisible = false
     private val collapsedOverlays = mutableSetOf<Int>()
+    private var playbackOverlaysHidden = false
     private var playbackOverlayAutoCompacted = false
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -435,6 +446,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        discoveryRequestId++
+        cameraSearchHandle?.cancel()
+        cameraSearchHandle = null
         handler.removeCallbacks(inspectionTick)
         digitalZoomPopup?.dismiss()
         fileDetailsPopup?.dismiss()
@@ -545,7 +559,15 @@ class MainActivity : AppCompatActivity() {
                 }
         }
         bindCollapsibleOverlay(R.id.connection_panel, R.id.connection_collapse, R.id.connection_reveal)
-        bindCollapsibleOverlay(R.id.controls_panel, R.id.controls_collapse, R.id.controls_reveal)
+        findViewById<View>(R.id.controls_collapse).setOnClickListener {
+            playbackOverlaysHidden = true
+            digitalZoomPopup?.dismiss()
+            applyWorkspaceVisibility(viewModel.state)
+        }
+        findViewById<View>(R.id.controls_reveal).setOnClickListener {
+            playbackOverlaysHidden = false
+            applyWorkspaceVisibility(viewModel.state)
+        }
         bindCollapsibleOverlay(R.id.sidebar_panel_container, R.id.sidebar_collapse, R.id.sidebar_reveal)
         bindCollapsibleOverlay(R.id.app_header, R.id.header_collapse, R.id.header_reveal)
 
@@ -664,6 +686,24 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.device_results_reveal).visibility =
             if (resultsVisible && deviceResultsCollapsed) View.VISIBLE else View.GONE
+
+        // Keep a single visibility switch below the stream; preserve each panel's state.
+        intArrayOf(
+            R.id.connection_collapse, R.id.sidebar_collapse,
+            R.id.header_collapse, R.id.device_results_collapse
+        ).forEach { findViewById<View>(it).visibility = View.GONE }
+        if (playbackVisible && playbackOverlaysHidden) {
+            intArrayOf(
+                R.id.connection_panel, R.id.connection_quick_actions,
+                R.id.controls_panel, R.id.sidebar_panel_container,
+                R.id.sidebar_reveal, R.id.app_header, R.id.header_reveal,
+                R.id.navigation_rail, R.id.device_results_panel, R.id.device_results_reveal
+            ).forEach { findViewById<View>(it).visibility = View.GONE }
+        } else {
+            findViewById<View>(R.id.navigation_rail).visibility = View.VISIBLE
+        }
+        findViewById<View>(R.id.controls_reveal).visibility =
+            if (playbackVisible && playbackOverlaysHidden) View.VISIBLE else View.GONE
     }
 
     private fun compactPlaybackOverlays() {
@@ -847,7 +887,10 @@ class MainActivity : AppCompatActivity() {
             setBackgroundResource(android.R.color.transparent)
             setTextColor(getColor(R.color.muted))
         }
-        findViewById<Button>(R.id.search_button).isEnabled = !state.onvifSearching
+        findViewById<Button>(R.id.search_button).setText(if (state.onvifSearching) R.string.onvif_cancel_search else R.string.search_devices)
+        findViewById<EditText>(R.id.onvif_scan_range).isEnabled = !state.onvifSearching
+        findViewById<EditText>(R.id.onvif_user).isEnabled = !state.onvifSearching
+        findViewById<EditText>(R.id.onvif_password).isEnabled = !state.onvifSearching
         onvifHint.text = state.onvifHint
         if (previous?.history != state.history) renderHistory(state.history)
         if (previous?.captures != state.captures) {
@@ -2716,6 +2759,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun searchOnvif() {
+        if (viewModel.state.onvifSearching) {
+            cameraSearchHandle?.cancel()
+            return
+        }
         val credentials = onvifCredentials()
         if (credentials.username.isBlank() && credentials.password.isBlank()) {
             AlertDialog.Builder(this)
@@ -2730,17 +2777,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun performOnvifSearch(credentials: OnvifCredentials) {
+        val options = runCatching {
+            CameraSearchOptions(
+                manualSubnetCidr = findViewById<EditText>(R.id.onvif_scan_range).text.toString().trim().ifEmpty { null },
+                knownCameraIps = viewModel.state.history.mapNotNull { runCatching { java.net.URI(it.url).host }.getOrNull() }.toSet(),
+                preferredServiceUrls = viewModel.state.onvifDevices.map { it.serviceUrl }
+            )
+        }.getOrElse {
+            viewModel.setOnvifHint(getString(R.string.onvif_scan_range_invalid))
+            return
+        }
         val requestId = ++discoveryRequestId
+        cameraSearchHandle?.cancel()
         viewModel.onOnvifSearchStarted()
         runCatching {
-            onvif.search(credentials) { devices ->
+            cameraSearchHandle = onvif.search(credentials, options) { update ->
                 runOnUiThread {
                     if (isDestroyed || requestId != discoveryRequestId) return@runOnUiThread
-                    viewModel.onOnvifSearchFinished(devices)
+                    if (update.phase == CameraSearchPhase.FINISHED) cameraSearchHandle = null
+                    viewModel.onOnvifSearchUpdate(update)
                 }
             }
         }.onFailure {
-            viewModel.setOnvifHint(getString(R.string.search_failed, safeError(it)))
+            viewModel.onOnvifSearchUpdate(CameraSearchUpdate(CameraSearchPhase.FINISHED, emptyList(), end = CameraSearchEnd.FAILED))
         }
     }
 
@@ -3609,8 +3668,7 @@ class MainActivity : AppCompatActivity() {
                     .remove("data_notice_accepted").apply()
                 activateLicense()
             }
-            .apply { if (BuildConfig.PRIVACY_POLICY_URL.isNotBlank())
-                setNeutralButton(R.string.privacy_full_policy, null) }
+            .setNeutralButton(R.string.privacy_full_policy, null)
             .setNegativeButton(R.string.privacy_exit) { _, _ -> finish() }
             .setCancelable(false)
             .create()
@@ -3626,8 +3684,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(R.string.privacy_notice_title)
             .setMessage(privacyNoticeText())
-            .apply { if (BuildConfig.PRIVACY_POLICY_URL.isNotBlank())
-                setNeutralButton(R.string.privacy_full_policy) { _, _ -> openPrivacyPolicy() } }
+            .setNeutralButton(R.string.privacy_full_policy) { _, _ -> openPrivacyPolicy() }
             .setPositiveButton(R.string.close, null)
             .show()
     }
@@ -3653,6 +3710,10 @@ class MainActivity : AppCompatActivity() {
             showMessage(getString(R.string.privacy_wait_for_search))
             return
         }
+        if (viewModel.state.recordingFile != null || recordingStopInProgress || inspectionJobs.isNotEmpty()) {
+            showMessage(getString(R.string.privacy_wait_for_recording))
+            return
+        }
         AlertDialog.Builder(this)
             .setTitle(R.string.privacy_delete_local_data)
             .setMessage(R.string.privacy_delete_local_data_confirm)
@@ -3664,6 +3725,10 @@ class MainActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 val result = runCatching {
+                    stopService(Intent(this, CameraPushService::class.java))
+                    pendingDefectImages.clear()
+                    handler.removeCallbacks(inspectionTick)
+                    inspection.clear()
                     if (viewModel.state.recordingFile != null) {
                         player?.stopAllRecordings()
                         viewModel.onRecordingStopped()
@@ -3671,6 +3736,8 @@ class MainActivity : AppCompatActivity() {
                     player?.stop()
                     viewModel.onStopped()
                     discoveryRequestId++
+                    cameraSearchHandle?.cancel()
+                    onvif.clearHistory()
                     detailRequestId++
                     viewModel.deleteLocalData()
                 }.getOrElse {
@@ -3701,8 +3768,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openPrivacyPolicy() {
-        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_POLICY_URL))) }
-            .onFailure { showMessage(getString(R.string.privacy_open_failed)) }
+        val url = BuildConfig.PRIVACY_POLICY_URL
+        if (url.startsWith("https://") && runCatching {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            }.isSuccess) return
+        runCatching {
+            val html = assets.open("legal/privacy-policy.html").bufferedReader().use { it.readText() }
+            val webView = android.webkit.WebView(this).apply {
+                settings.javaScriptEnabled = false
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+                settings.blockNetworkLoads = true
+                webViewClient = object : android.webkit.WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                        if (request?.url?.scheme == "mailto") runCatching {
+                            startActivity(Intent(Intent.ACTION_SENDTO, request.url))
+                        }
+                        return true
+                    }
+                }
+                loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+            }
+            AlertDialog.Builder(this)
+                .setTitle(R.string.privacy_full_policy)
+                .setView(webView)
+                .setPositiveButton(R.string.close, null)
+                .create().apply {
+                    setOnDismissListener { webView.destroy() }
+                    show()
+                    window?.setLayout((resources.displayMetrics.widthPixels * 0.9f).toInt(),
+                        (resources.displayMetrics.heightPixels * 0.85f).toInt())
+                }
+        }.onFailure { showMessage(getString(R.string.privacy_open_failed)) }
     }
 
     private fun showOpenSourceNotices() {
@@ -3762,7 +3859,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun baseWatermarkSpec(target: WatermarkTarget): WatermarkSpec =
         RoboYiWatermarkMapper.spec(
-            this, viewModel.state.watermark, target, getString(R.string.app_name), bitmapWatermark
+            this, viewModel.state.watermark, target, bitmapWatermark
         )
 
     private fun updateCurrentWatermark() {

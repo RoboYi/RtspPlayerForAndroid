@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-10-11T23:11:58.4329526+08:00",
+  "apk": "RoboYiPlayer-1.0.5-release.apk",
+  "package": "com.roboyi.rtspplayer",
+  "versionName": "1.0.5",
+  "versionCode": 6,
+  "sha256": "3FBE6F7D4B6F86A10586B2E5D283DCA1FAECA76D8719C3716B7E0EA0A2BB790C",
+  "bytes": 24090406,
+  "certificateSha256": "01022d38f814a32642ded38f5071a3209c73fabc38d5bb6680442aa8df001844",
+  "privacyPolicySha256": "A96BACA03FB5647870A2F82B3EB4FA7BD7B0092592773FBFBD949FC60D961C70",
+  "signatureVerified": true,
+  "debuggable": false,
+  "nativeElf16KbVerified": true,
+  "apkZip16KbVerified": true,
+  "sdkArtifacts": [
+    {
+      "sha256": "FAEE0163289AE18A64E977CC849C82F2CDB725467EA03EBCFAA604AAA1A13077",
+      "name": "roboyiplayer-camera-push-release-V1.0.4-Beta.aar"
+    },
+    {
+      "sha256": "978EAE0337DEF26D68CBF7D1E6A83DA961E8A1C46F59728A55057F3654C509EC",
+      "name": "roboyiplayer-core-avc-hevc-release-discovery-V1.0.4-Beta.aar"
+    },
+    {
+      "sha256": "7624B7A819051BFC27A3E08C3EB923EFC62FF016135B3030BEBA608CFA889660",
+      "name": "roboyiplayer-transport-gstreamer-avc-hevc-release-V1.0.4-Beta.aar"
+    }
+  ]
+}
